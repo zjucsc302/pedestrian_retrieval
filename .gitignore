@@ -3,5 +3,6 @@
 *.npy
 *.csv
 data/
+test1.py
 
 
