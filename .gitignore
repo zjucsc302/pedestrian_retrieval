@@ -4,5 +4,7 @@
 *.csv
 data/
 test1.py
+train2.py
+VGG_model/result/
 
 
