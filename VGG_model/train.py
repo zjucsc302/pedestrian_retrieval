@@ -29,7 +29,7 @@ class Train_Flags():
         self.output_summary_path = os.path.join(self.current_file_path, 'result','summary')
         self.output_check_point_path = os.path.join(self.current_file_path, 'result','check_point')
 
-        self.dataset_train_csv_file_path = '/home/linze/liuhy/liuhy_github/pedestrian_retrieval/train.csv'
+        self.dataset_train_csv_file_path = '/home/zj/my_workspace/smart_city_workspace/pedestrian_retrieval/data/train.csv'
 
         self.check_path_exist()
 
