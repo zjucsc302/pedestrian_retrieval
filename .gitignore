@@ -2,6 +2,8 @@
 
 *.npy
 *.csv
+images.png
+images2.png
 data/
 test1.py
 train2.py
