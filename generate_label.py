@@ -77,17 +77,17 @@ def generate_train_eval(dataset_triplet_pair):
     X_train_val, X_test = train_test_split(dataset_triplet_pair, test_size=0.2, random_state=1)
     X_train, X_val = train_test_split(X_train_val, test_size=0.25, random_state=1)
 
-    with open('train.csv', 'w') as output:
+    with open('data/train.csv', 'w') as output:
         for (ref_image, ref_pos_image, ref_neg_image) in X_train:
             output.write("%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image))
             output.write("\n")
 
-    with open('test.csv', 'w') as output:
+    with open('data/test.csv', 'w') as output:
         for (ref_image, ref_pos_image, ref_neg_image) in X_test:
             output.write("%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image))
             output.write("\n")
 
-    with open('eval.csv', 'w') as output:
+    with open('data/eval.csv', 'w') as output:
         for (ref_image, ref_pos_image, ref_neg_image) in X_val:
             output.write("%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image))
             output.write("\n")
