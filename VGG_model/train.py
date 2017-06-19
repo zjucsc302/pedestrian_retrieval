@@ -18,13 +18,13 @@ class Train_Flags():
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
 
-        self.batch_size = 1
+        self.batch_size = 10
 
-        self.initial_learning_rate = 0.0001
+        self.initial_learning_rate = 0.001
         self.learning_rate_decay_factor = 0.9
         self.moving_average_decay = 0.999999
 
-        self.distance_alfa = 1
+        self.distance_alfa = 0.5
 
         self.output_summary_path = os.path.join(self.current_file_path, 'result','summary')
         self.output_check_point_path = os.path.join(self.current_file_path, 'result','check_point')
@@ -51,7 +51,7 @@ def _model_loss(vgg_class, refs_batch, poss_batch, negs_batch):
         input_batch = tf.concat([refs_batch, poss_batch, negs_batch], 0)
         vgg_class.build(input_batch)
 
-        vgg_class.calc_loss(vgg_class.fc6, train_flags.distance_alfa)
+        vgg_class.calc_loss(vgg_class.fc7, train_flags.distance_alfa)
 
     total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
 
@@ -94,8 +94,7 @@ def train():
                                         staircase=True)
 
         # Create an optimizer that performs gradient descent.
-        vars_to_optimize = [v for v in tf.trainable_variables() \
-                            if v.name.startswith('fc')]
+        vars_to_optimize = [v for v in tf.trainable_variables() if (v.name.startswith('fc') | v.name.startswith('conv4')) ]
         print '\nvariables to optimize'
 
 
@@ -105,7 +104,9 @@ def train():
 
         opt = tf.train.AdamOptimizer(lr)
 
+        #grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
         grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
+
 
         apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
         train_op = tf.group(apply_gradient_op)

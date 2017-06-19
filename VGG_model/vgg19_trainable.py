@@ -4,7 +4,8 @@ import numpy as np
 from functools import reduce
 import os
 
-VGG_MEAN = [103.939, 116.779, 123.68]
+#VGG_MEAN = [103.939, 116.779, 123.68]
+VGG_MEAN = [98.200, 98.805, 102.044]
 
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
@@ -67,22 +68,39 @@ class Vgg19:
         self.conv4_4 = self.conv_layer(self.conv4_3, 512, 512, "conv4_4")
         self.pool4 = self.max_pool(self.conv4_4, 'pool4')
 
+        '''
         self.conv5_1 = self.conv_layer(self.pool4, 512, 512, "conv5_1")
         self.conv5_2 = self.conv_layer(self.conv5_1, 512, 512, "conv5_2")
         self.conv5_3 = self.conv_layer(self.conv5_2, 512, 512, "conv5_3")
         self.conv5_4 = self.conv_layer(self.conv5_3, 512, 512, "conv5_4")
         self.pool5 = self.max_pool(self.conv5_4, 'pool5')
 
-        self.fc6 = self.fc_layer_fine_tune(self.pool5, 25088, 1024, "fc6")  # 25088 = ((224 // (2 ** 5)) ** 2) * 512
+        self.fc6 = self.fc_layer_fine_tune(self.pool4, 25088, 2048, "fc6")  # 25088 = ((224 // (2 ** 5)) ** 2) * 512
         self.relu6 = tf.nn.relu(self.fc6)
         self.relu6 = tf.nn.dropout(self.relu6, self.dropout)
 
 
-        '''
-        self.fc7 = self.fc_layer_fine_tune(self.relu6, 4096, 4096, "fc7")
+
+        self.fc7 = self.fc_layer_fine_tune(self.relu6, 2048, 1024, "fc7")
         self.relu7 = tf.nn.relu(self.fc7)
         self.relu7 = tf.nn.dropout(self.relu7, self.dropout)
 
+        '''
+
+        self.fc6 = self.fc_layer_fine_tune(self.pool4, 100352, 512, "fc6")  # 25088 = ((224 // (2 ** 5)) ** 2) * 512
+        self.relu6 = tf.nn.relu(self.fc6)
+        self.relu6 = tf.nn.dropout(self.relu6, self.dropout)
+
+
+
+        self.fc7 = self.fc_layer_fine_tune(self.relu6, 512, 200, "fc7")
+        #self.relu7 = tf.nn.relu(self.fc7)
+        #self.relu7 = tf.nn.dropout(self.relu7, self.dropout)
+
+
+
+
+        '''
 
         self.fc8 = self.fc_layer_fine_tune(self.relu7, 4096, 1000, "fc8")
 
@@ -107,12 +125,12 @@ class Vgg19:
         norm_split_poss = tf.nn.l2_normalize(float_split_poss, dim=1)
         norm_split_negs = tf.nn.l2_normalize(float_split_negs, dim=1)
 
-        dist_ref_to_pos = tf.sqrt(tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_poss)), 1))
-        dist_ref_to_neg = tf.sqrt(tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_negs)), 1))
+        dist_ref_to_pos = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_poss)), 1)
+        dist_ref_to_neg = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_negs)), 1)
 
-        matrix_zeros = tf.constant(0.0, shape= dist_ref_to_pos.get_shape())
+        basic_cost = tf.add(tf.subtract(dist_ref_to_pos, dist_ref_to_neg), distance_alfa)
 
-        cost = tf.reduce_mean(tf.maximum(dist_ref_to_pos + distance_alfa - dist_ref_to_neg, matrix_zeros))
+        cost = tf.reduce_mean(tf.maximum(basic_cost, 0.0), 0)
 
         tf.add_to_collection('losses', cost)
 
@@ -132,7 +150,7 @@ class Vgg19:
             # input
             ref_image = tf.read_file(ref_image_path)
             ref = tf.image.decode_jpeg(ref_image, channels=3)
-            ref = tf.cast(ref, tf.int16)
+            ref = tf.cast(ref, dtype=tf.int16)
 
             ref_pos_image = tf.read_file(ref_pos_image_path)
             pos = tf.image.decode_jpeg(ref_pos_image, channels=3)
@@ -161,15 +179,6 @@ class Vgg19:
     def max_pool(self, bottom, name):
         return tf.nn.max_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)
 
-    def conv_layer(self, bottom, in_channels, out_channels, name):
-        with tf.variable_scope(name):
-            filt, conv_biases = self.get_conv_var(3, in_channels, out_channels, name)
-
-            conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
-            bias = tf.nn.bias_add(conv, conv_biases)
-            relu = tf.nn.relu(bias)
-
-            return relu
 
     def fc_layer_fine_tune(self, bottom, in_size, out_size, name):
         with tf.variable_scope(name):
@@ -180,7 +189,6 @@ class Vgg19:
 
             return fc
 
-
     def fc_layer(self, bottom, in_size, out_size, name):
         with tf.variable_scope(name):
             weights, biases = self.get_fc_var(in_size, out_size, name)
@@ -190,36 +198,48 @@ class Vgg19:
 
             return fc
 
-    def get_conv_var(self, filter_size, in_channels, out_channels, name):
-        #initial_value = tf.truncated_normal([filter_size, filter_size, in_channels, out_channels], 0.0, 0.001)
-        #filters = self.get_var(initial_value, name, 0, name + "_filters")
-        filters = self.get_var(name, 0, name + "_filters")
+    def conv_layer(self, bottom, in_channels, out_channels, name):
+        with tf.variable_scope(name):
+            filt, conv_biases = self.get_conv_var(3, in_channels, out_channels, name)
 
-        #initial_value = tf.truncated_normal([out_channels], .0, .001)
-        #biases = self.get_var(initial_value, name, 1, name + "_biases")
+            conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
+            bias = tf.nn.bias_add(conv, conv_biases)
+            relu = tf.nn.relu(bias)
+
+            return relu
+
+    def get_conv_var(self, filter_size, in_channels, out_channels, name):
+        filters = self.get_var(name, 0, name + "_filters")
         biases = self.get_var(name, 1, name + "_biases")
 
         return filters, biases
 
-    def get_fc_var(self, in_size, out_size, name):
-        #initial_value = tf.truncated_normal([in_size, out_size], 0.0, 0.001)
-        #weights = self.get_var(initial_value, name, 0, name + "_weights")
-        weights = self.get_var(name, 0, name + "_weights")
+    def conv_layer_fine_tune(self, bottom, in_channels, out_channels, name):
+        with tf.variable_scope(name):
+            filt, conv_biases = self.get_conv_var_fine_tune(3, in_channels, out_channels, name)
 
-        #initial_value = tf.truncated_normal([out_size], .0, .001)
-        #biases = self.get_var(initial_value, name, 1, name + "_biases")
+            conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
+            bias = tf.nn.bias_add(conv, conv_biases)
+            relu = tf.nn.relu(bias)
+
+            return relu
+
+    def get_conv_var_fine_tune(self, filter_size, in_channels, out_channels, name):
+
+        filters = tf.truncated_normal([filter_size, filter_size, in_channels, out_channels], 0.0, 0.001)
+        biases = tf.truncated_normal([out_channels], .0, .001)
+
+        return filters, biases
+
+    def get_fc_var(self, in_size, out_size, name):
+        weights = self.get_var(name, 0, name + "_weights")
         biases = self.get_var(name, 1, name + "_biases")
 
         return weights, biases
 
     def get_fc_var_fine_tune(self, in_size, out_size, name):
-        #initial_value = tf.truncated_normal([in_size, out_size], 0.0, 0.001)
-        #weights = self.get_var(initial_value, name, 0, name + "_weights")
         weights = self._variable_with_weight_decay('weights', shape=[in_size, out_size],
             stddev=0.001, wd=0.0, trainable=True)
-
-        #initial_value = tf.truncated_normal([out_size], .0, .001)
-        #biases = self.get_var(initial_value, name, 1, name + "_biases")
         biases = self._variable_on_gpu('biases', [out_size], tf.constant_initializer(0.001))
 
         return weights, biases
@@ -232,20 +252,11 @@ class Vgg19:
         var = self._variable_on_gpu(name, shape, tf.truncated_normal_initializer(stddev=stddev))
         return var
 
-    #def get_var(self, initial_value, name, idx, var_name):
     def get_var(self, name, idx, var_name):
 
         var = tf.Variable(self.data_dict[name][idx], name=var_name)
 
-        # self.var_dict[(name, idx)] = var
-
-        # print var_name, var.get_shape().as_list()
-
-        #assert var.get_shape() == initial_value.get_shape()
-
         return var
-
-
 
     def save_npy(self, sess, npy_path="./vgg19-save.npy"):
         assert isinstance(sess, tf.Session)

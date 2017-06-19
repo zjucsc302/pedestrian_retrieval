@@ -61,6 +61,13 @@ def get_pos_image(ref_image, ref_id, info_dict):
     pos_list.append(ref_image)
     return pos_image
 
+def get_animal_image():
+    pos_list = info_dict[ref_id]
+    pos_list.remove(ref_image)
+    pos_image = random.sample(pos_list,1)[0]
+    pos_list.append(ref_image)
+    return pos_image
+
 def get_triplet_pair(train_eval):
     dataset_triplet_pair = []
     for key_id, value_images_list in train_eval.iteritems():
@@ -72,6 +79,16 @@ def get_triplet_pair(train_eval):
 
     return dataset_triplet_pair
 
+def get_triplet_pair_test():
+    dataset_triplet_pair = []
+    for key_id, value_images_list in train_eval.iteritems():
+        #make every image in train_eval as reference image
+        for ref_image in value_images_list:
+            ref_pos_image = get_pos_image(ref_image, key_id, train_eval)
+            ref_neg_image = get_animal_image()
+            dataset_triplet_pair.append([ref_image, ref_pos_image, ref_neg_image])
+
+    return dataset_triplet_pair
 
 def generate_train_eval(dataset_triplet_pair):
     X_train_val, X_test = train_test_split(dataset_triplet_pair, test_size=0.2, random_state=1)
