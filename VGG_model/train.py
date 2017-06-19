@@ -1,55 +1,24 @@
 from datetime import datetime
-import os.path, sys
+import os.path
 import time
-from tensorflow.python.platform import gfile
 
 import numpy as np
 import tensorflow as tf
 
-import vgg19_trainable as vgg19
+from vgg19_trainable import Vgg19
+from vgg19_trainable import Train_Flags
 
-
-class Train_Flags():
-    def __init__(self):
-
-        self.current_file_path = sys.path[0]
-
-        self.max_step = 1000000
-        self.num_per_epoch = 10000
-        self.num_epochs_per_decay = 30
-
-        self.batch_size = 10
-
-        self.initial_learning_rate = 0.001
-        self.learning_rate_decay_factor = 0.9
-        self.moving_average_decay = 0.999999
-
-        self.distance_alfa = 0.5
-
-        self.output_summary_path = os.path.join(self.current_file_path, 'result','summary')
-        self.output_check_point_path = os.path.join(self.current_file_path, 'result','check_point')
-
-        self.dataset_train_csv_file_path = '/home/linze/liuhy/liuhy_github/pedestrian_retrieval/train1.csv'
-
-        self.check_path_exist()
-
-
-    def check_path_exist(self):
-        if not gfile.Exists(self.output_summary_path):
-            gfile.MakeDirs(self.output_summary_path)
-        if not gfile.Exists(self.output_check_point_path):
-            gfile.MakeDirs(self.output_check_point_path)
 
 
 train_flags = Train_Flags()
 
 
-def _model_loss(vgg_class, refs_batch, poss_batch, negs_batch):
+def _model_loss(vgg_class, refs_batch, poss_batch, negs_batch, test_batch):
     # Compute the moving average of all losses
 
     with tf.variable_scope(tf.get_variable_scope()):
         input_batch = tf.concat([refs_batch, poss_batch, negs_batch], 0)
-        vgg_class.build(input_batch)
+        vgg_class.build(input_batch, test_batch, vgg_class.train_test_mode)
 
         vgg_class.calc_loss(vgg_class.fc7, train_flags.distance_alfa)
 
@@ -72,12 +41,14 @@ def train():
     with tf.Graph().as_default():
 
         #build a VGG19 class object
-        vgg = vgg19.Vgg19('./vgg19.npy')
+        train_mode = tf.placeholder(tf.bool)
+
+        vgg = Vgg19(vgg19_npy_path='./vgg19.npy', train_test_mode=train_mode)
 
         refs_batch, poss_batch, negs_batch = vgg.train_batch_inputs(train_flags.dataset_train_csv_file_path, train_flags.batch_size)
+        test_batch = vgg.test_batch_inputs(train_flags.dataset_test_csv_file_path, train_flags.batch_size)
 
-        loss = _model_loss(vgg, refs_batch, poss_batch, negs_batch)
-
+        loss = _model_loss(vgg, refs_batch, poss_batch, negs_batch, test_batch)
 
 
         global_step = tf.get_variable('global_step', [],
@@ -107,17 +78,13 @@ def train():
         #grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
         grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
 
-
         apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
         train_op = tf.group(apply_gradient_op)
 
         summary_op = tf.summary.merge_all()
 
-
         sess = tf.Session()
-
         init = tf.global_variables_initializer()
-
         sess.run(init)
 
         # Start the queue runners.
@@ -127,11 +94,10 @@ def train():
         summary_writer = tf.summary.FileWriter(train_flags.output_summary_path, graph=sess.graph)
         saver = tf.train.Saver(tf.global_variables())
 
-
         print('start training')
         for step in range(train_flags.max_step):
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss])
+            _, loss_value = sess.run([train_op, loss], feed_dict={train_mode: True})
 
             duration = time.time() - start_time
 
@@ -144,19 +110,96 @@ def train():
                 print(format_str % (datetime.now(), step, loss_value,
                                     examples_per_sec, duration))
 
-            if step % 100 == 0:
-                summary_str = sess.run(summary_op)
+            if step % 101 == 0:
+                summary_str = sess.run(summary_op, feed_dict={train_mode: True})
                 summary_writer.add_summary(summary_str, step)
 
             # Save the model checkpoint periodically.
-            if step % 50000 == 0 or (step + 1) == train_flags.max_step:
+            if step % 5000 == 0 or (step + 1) == train_flags.max_step:
                 checkpoint_path = os.path.join(train_flags.output_check_point_path, 'model.ckpt')
                 saver.save(sess, checkpoint_path, global_step=step)
+
+                test_dataset_features = np.zeros((train_flags.test_num, train_flags.test_output_feature_dim), dtype=float)
+                batch_index = 0
+                batch_size_test = train_flags.batch_size
+                # do test: send every image in test.csv and get feature vector
+                # save all feature vector in npy
+                while True:
+                    if(batch_index*batch_size_test < train_flags.test_num):
+                        test_batch_output_feature = sess.run(vgg.fc7, feed_dict={train_mode: False})
+                        test_dataset_features[(batch_index * batch_size_test) : ((batch_index + 1) * batch_size_test), 0:train_flags.test_output_feature_dim] = test_batch_output_feature
+
+                        batch_index = batch_index + 1
+                        print 'batch_index:', batch_index
+                    else:
+                        break
+                test_dataset_features_filename = os.path.join(train_flags.output_test_features_path, 'test_features_step-%d.npy' % step)
+                np.save(test_dataset_features_filename, test_dataset_features)
+
 
         coord.request_stop()
         coord.join(threads)
         sess.close()
 
 
-train()
+def test():
 
+    """Train on dataset for a number of steps."""
+    with tf.Graph().as_default():
+
+        #build a VGG19 class object
+        train_mode = tf.placeholder(tf.bool)
+
+        vgg = Vgg19(vgg19_npy_path='./vgg19.npy', train_test_mode=train_mode)
+
+        refs_batch, poss_batch, negs_batch = vgg.train_batch_inputs(train_flags.dataset_train_csv_file_path, train_flags.batch_size)
+        test_batch = vgg.test_batch_inputs(train_flags.dataset_test_csv_file_path, train_flags.batch_size)
+
+        loss = _model_loss(vgg, refs_batch, poss_batch, negs_batch, test_batch)
+
+        sess = tf.Session()
+
+        init = tf.global_variables_initializer()
+
+        sess.run(init)
+
+        # Add ops to save and restore all the variables.
+        saver = tf.train.Saver()
+        # Restore variables from disk.
+        saver.restore(sess, train_flags.output_check_point_path + "/model.ckpt")
+        print("Model restored.")
+
+        # Start the queue runners.
+        coord = tf.train.Coordinator()
+        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
+
+
+        print('start testing')
+
+        test_dataset_features = np.zeros((train_flags.test_num, train_flags.test_output_feature_dim), dtype=float)
+        batch_index = 0
+        # do test: send every image in test.csv and get feature vector
+        # save all feature vector in npy
+        while True:
+            try:
+                test_batch_output_feature = sess.run([vgg.fc7], feed_dict={train_mode: False})
+                test_dataset_features[(batch_index * train_flags.batch_size) : \
+                    (batch_index + 1) * train_flags.batch_size, : ] = test_batch_output_feature
+
+                batch_index = batch_index + 1
+                print 'process batch_index: ', batch_index
+
+            except tf.errors.OutOfRangeError:
+                break
+
+        test_dataset_features_filename = os.path.join(train_flags.output_test_features_path, 'test_features_step-testing.npy')
+        np.save(test_dataset_features_filename, test_dataset_features)
+
+        coord.request_stop()
+        coord.join(threads)
+        sess.close()
+
+
+
+train()
+#test()

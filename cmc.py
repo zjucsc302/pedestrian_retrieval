@@ -4,7 +4,7 @@
 import numpy as np
 import random
 from scipy.spatial.distance import pdist, squareform,cdist
-from generate_label import get_dict_ids_images
+#from generate_label import get_dict_ids_images
 
 
 def _cmc_core(D, G, P):
@@ -201,16 +201,16 @@ def compute_distmat(gallery, probe):
     :param probe:       probe image features, 2D ndarray(number of probe x feature dim)
     :return:            distance mat, 2D ndarray(number of gallery x number of probe)
     """
-    return cdist(gallery,probe)
+    return cdist(gallery, probe)
 
 
 
 # 生成gallery和probe
-train_eval = get_dict_ids_images()
-gallery, probe, glabels, plabels = generate_gallery(train_eval, 800)
+#train_eval = get_dict_ids_images()
+#gallery, probe, glabels, plabels = generate_gallery(train_eval, 800)
 
 #计算距离矩阵 demo
-distmat = compute_distmat(np.array([[0, 1],[1,5],[3,2],[3,3]]),np.array([[1,0],[2,3],[1,1]]))
+#distmat = compute_distmat(np.array([[0, 1],[1,5],[3,2],[3,3]]),np.array([[1,0],[2,3],[1,1]]))
 #计算cmc
-cmc_mean = count(distmat=distmat,glabels=glabels,plabels=plabels,n_selected_labels=50,n_repeat=10)
-print('done')
+#cmc_mean = count(distmat=distmat,glabels=glabels,plabels=plabels,n_selected_labels=50,n_repeat=10)
+#print('done')

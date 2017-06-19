@@ -3,6 +3,7 @@ import tensorflow as tf
 import numpy as np
 from functools import reduce
 import os
+from tensorflow.python.platform import gfile
 
 #VGG_MEAN = [103.939, 116.779, 123.68]
 VGG_MEAN = [98.200, 98.805, 102.044]
@@ -10,31 +11,68 @@ VGG_MEAN = [98.200, 98.805, 102.044]
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
 
+class Train_Flags():
+    def __init__(self):
+
+        self.current_file_path = '/home/linze/liuhy/liuhy_github/pedestrian_retrieval/VGG_model'
+
+        self.max_step = 1000000
+        self.num_per_epoch = 10000
+        self.num_epochs_per_decay = 30
+
+        self.batch_size = 10
+        # test_num should be divided by batch_size
+        self.test_num = 18070
+        self.test_output_feature_dim = 100
+
+        self.initial_learning_rate = 0.001
+        self.learning_rate_decay_factor = 0.9
+        self.moving_average_decay = 0.999999
+
+        self.distance_alfa = 0.5
+
+        self.output_summary_path = os.path.join(self.current_file_path, 'result','summary')
+        self.output_check_point_path = os.path.join(self.current_file_path, 'result','check_point')
+        self.output_test_features_path = os.path.join(self.current_file_path, 'result','test_features')
+
+
+        self.dataset_train_csv_file_path = '/home/linze/liuhy/liuhy_github/pedestrian_retrieval/train1.csv'
+        self.dataset_test_csv_file_path = '/home/linze/liuhy/liuhy_github/pedestrian_retrieval/test.csv'
+
+        self.check_path_exist()
+
+
+    def check_path_exist(self):
+        if not gfile.Exists(self.output_summary_path):
+            gfile.MakeDirs(self.output_summary_path)
+        if not gfile.Exists(self.output_check_point_path):
+            gfile.MakeDirs(self.output_check_point_path)
+        if not gfile.Exists(self.output_test_features_path):
+            gfile.MakeDirs(self.output_test_features_path)
+
+
 class Vgg19:
     """
     A trainable version VGG19.
     """
 
-    def __init__(self, vgg19_npy_path=None, trainable=True, dropout=0.5):
+    def __init__(self, vgg19_npy_path=None, dropout=0.5, train_test_mode=True):
         if vgg19_npy_path is not None:
             self.data_dict = np.load(vgg19_npy_path, encoding='latin1').item()
         else:
             self.data_dict = None
 
         self.var_dict = {}
-        self.trainable = trainable
         self.dropout = dropout
+        self.train_test_mode = train_test_mode
 
-    def build(self, rgb):
+    def build(self, rgb_scaled, test_rgb_scaled, train_test_mode):
         """
         load variable from npy to build the VGG
 
         :param rgb: rgb image [batch, height, width, 3] values scaled [0, 1]
-        :param train_mode: a bool tensor, usually a placeholder: if True, dropout will be turned on
+        :param train_test_mode: a bool tensor, usually a placeholder: if True, dropout will be turned on
         """
-
-        #rgb_scaled = rgb * 255.0
-        rgb_scaled = rgb
 
         # Convert RGB to BGR
         red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
@@ -48,7 +86,21 @@ class Vgg19:
         ])
         assert bgr.get_shape().as_list()[1:] == [224, 224, 3]
 
-        self.conv1_1 = self.conv_layer(bgr, 3, 64, "conv1_1")
+        test_red, test_green, test_blue = tf.split(axis=3, num_or_size_splits=3, value=test_rgb_scaled)
+        assert test_red.get_shape().as_list()[1:] == [224, 224, 1]
+        assert test_green.get_shape().as_list()[1:] == [224, 224, 1]
+        assert test_blue.get_shape().as_list()[1:] == [224, 224, 1]
+        test_bgr = tf.concat(axis=3, values=[
+            test_blue - VGG_MEAN[0],
+            test_green - VGG_MEAN[1],
+            test_red - VGG_MEAN[2],
+        ])
+        assert test_bgr.get_shape().as_list()[1:] == [224, 224, 3]
+
+
+        data = tf.cond(train_test_mode, lambda: bgr, lambda: test_bgr)
+
+        self.conv1_1 = self.conv_layer(data, 3, 64, "conv1_1")
         self.conv1_2 = self.conv_layer(self.conv1_1, 64, 64, "conv1_2")
         self.pool1 = self.max_pool(self.conv1_2, 'pool1')
 
@@ -68,7 +120,9 @@ class Vgg19:
         self.conv4_4 = self.conv_layer(self.conv4_3, 512, 512, "conv4_4")
         self.pool4 = self.max_pool(self.conv4_4, 'pool4')
 
+
         '''
+        
         self.conv5_1 = self.conv_layer(self.pool4, 512, 512, "conv5_1")
         self.conv5_2 = self.conv_layer(self.conv5_1, 512, 512, "conv5_2")
         self.conv5_3 = self.conv_layer(self.conv5_2, 512, 512, "conv5_3")
@@ -87,13 +141,13 @@ class Vgg19:
 
         '''
 
-        self.fc6 = self.fc_layer_fine_tune(self.pool4, 100352, 512, "fc6")  # 25088 = ((224 // (2 ** 5)) ** 2) * 512
+        self.fc6 = self.fc_layer_fine_tune(self.pool4, 100352, 256, "fc6")
         self.relu6 = tf.nn.relu(self.fc6)
-        self.relu6 = tf.nn.dropout(self.relu6, self.dropout)
+        self.relu6 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.relu6, self.dropout), lambda: self.relu6)
 
 
 
-        self.fc7 = self.fc_layer_fine_tune(self.relu6, 512, 200, "fc7")
+        self.fc7 = self.fc_layer_fine_tune(self.relu6, 256, 100, "fc7")
         #self.relu7 = tf.nn.relu(self.fc7)
         #self.relu7 = tf.nn.dropout(self.relu7, self.dropout)
 
@@ -172,6 +226,33 @@ class Vgg19:
                 capacity=50 + 3 * batch_size
             )
             return refs, poss, negs
+
+    def test_batch_inputs(self, dataset_test_csv_file_path, batch_size):
+
+        with tf.name_scope('test_batch_processing'):
+            if (os.path.isfile(dataset_test_csv_file_path) != True):
+                raise ValueError('No data files found for this test dataset')
+
+            filename_queue = tf.train.string_input_producer([dataset_test_csv_file_path], shuffle=False)
+            reader = tf.TextLineReader()
+            _, serialized_example = reader.read(filename_queue)
+            test_image_path, _ = tf.decode_csv(serialized_example, [["test_image"], ["label"]])
+
+            # input
+            test_image = tf.read_file(test_image_path)
+            test = tf.image.decode_jpeg(test_image, channels=3)
+            test = tf.cast(test, dtype=tf.int16)
+
+            resized_test = tf.image.resize_images(test, (IMAGE_HEIGHT, IMAGE_WIDTH))
+
+            # generate batch
+            tests = tf.train.batch(
+                [resized_test],
+                batch_size=batch_size,
+                num_threads=4,
+                capacity=50 + 3 * batch_size
+            )
+            return tests
 
     def avg_pool(self, bottom, name):
         return tf.nn.avg_pool(bottom, ksize=[1, 2, 2, 1], strides=[1, 2, 2, 1], padding='SAME', name=name)

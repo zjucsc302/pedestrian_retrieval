@@ -2,11 +2,12 @@
 
 from xml.etree import ElementTree
 
-import pickle as pkl
 import os,sys
 import random
 from sklearn.model_selection import train_test_split
 
+from cmc import generate_gallery
+from VGG_model.vgg19_trainable import Train_Flags
 
 def get_dict_ids_images():
 
@@ -61,12 +62,25 @@ def get_pos_image(ref_image, ref_id, info_dict):
     pos_list.append(ref_image)
     return pos_image
 
+'''
 def get_animal_image():
     pos_list = info_dict[ref_id]
     pos_list.remove(ref_image)
     pos_image = random.sample(pos_list,1)[0]
     pos_list.append(ref_image)
     return pos_image
+    
+def get_triplet_pair_test():
+    dataset_triplet_pair = []
+    for key_id, value_images_list in train_eval.iteritems():
+        #make every image in train_eval as reference image
+        for ref_image in value_images_list:
+            ref_pos_image = get_pos_image(ref_image, key_id, train_eval)
+            ref_neg_image = get_animal_image()
+            dataset_triplet_pair.append([ref_image, ref_pos_image, ref_neg_image])
+
+    return dataset_triplet_pair
+'''
 
 def get_triplet_pair(train_eval):
     dataset_triplet_pair = []
@@ -79,16 +93,7 @@ def get_triplet_pair(train_eval):
 
     return dataset_triplet_pair
 
-def get_triplet_pair_test():
-    dataset_triplet_pair = []
-    for key_id, value_images_list in train_eval.iteritems():
-        #make every image in train_eval as reference image
-        for ref_image in value_images_list:
-            ref_pos_image = get_pos_image(ref_image, key_id, train_eval)
-            ref_neg_image = get_animal_image()
-            dataset_triplet_pair.append([ref_image, ref_pos_image, ref_neg_image])
 
-    return dataset_triplet_pair
 
 def generate_train_eval(dataset_triplet_pair):
     X_train_val, X_test = train_test_split(dataset_triplet_pair, test_size=0.2, random_state=1)
@@ -99,6 +104,7 @@ def generate_train_eval(dataset_triplet_pair):
             output.write("%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image))
             output.write("\n")
 
+    '''
     with open('test.csv', 'w') as output:
         for (ref_image, ref_pos_image, ref_neg_image) in X_test:
             output.write("%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image))
@@ -108,20 +114,57 @@ def generate_train_eval(dataset_triplet_pair):
         for (ref_image, ref_pos_image, ref_neg_image) in X_val:
             output.write("%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image))
             output.write("\n")
+    
+    '''
+
+def generate_test(gallery_probe, glabels_plabels, test_batch):
+
+    test_num = 0
+    with open('test.csv', 'w') as output:
+        for (image_path, image_label) in zip(gallery_probe, glabels_plabels):
+            output.write("%s,%s" % (image_path, image_label))
+            output.write("\n")
+
+            test_num = test_num + 1
+
+        while(test_num % test_batch != 0):
+            output.write("%s,%s" % (image_path, 'Repeat for batch input'))
+            output.write("\n")
+            test_num = test_num + 1
+
+def generate_gallery_csv(gallery):
+    with open('gallery.csv', 'w') as output:
+        for image_path in gallery:
+            output.write("%s" % (image_path))
+            output.write("\n")
 
 
 
 train_eval = get_dict_ids_images()
 
-dataset_triplet_pair = get_triplet_pair(train_eval)
+#dataset_triplet_pair = get_triplet_pair(train_eval)
 
-generate_train_eval(dataset_triplet_pair)
+#generate_train_eval(dataset_triplet_pair)
 
+gallery, probe, glabels, plabels = generate_gallery(train_eval, 500)
 
+generate_gallery_csv(gallery)
 
+# append is a destructive operation
+# it modifies the list in place instead of of returning a new list
+gallery_probe = []
+gallery_probe.extend(gallery)
+gallery_probe.extend(probe)
 
-'''
+print gallery[0:100]
+print probe[0:100]
+print glabels[0:100]
+print plabels[0:100]
 
+glabels_plabels = []
+glabels_plabels.extend(glabels.tolist())
+glabels_plabels.extend(plabels.tolist())
 
-'''
-
+# using the parameter in train.py: train/test batch_size
+train_flags = Train_Flags()
+generate_test(gallery_probe, glabels_plabels, train_flags.batch_size)
