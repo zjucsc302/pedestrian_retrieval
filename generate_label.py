@@ -171,6 +171,18 @@ def generate_path_csv(image_path_list, path_csv):
             output.write("\n")
 
 
+def generate_path_label_csv(path_csv, image_path_list, label = None):
+    with open(path_csv, 'w') as output:
+        if label is None:
+            for i in range(len(image_path_list)):
+                output.write("%s,%s" % (image_path_list[i], -1))
+                output.write("\n")
+        else:
+            for i in range(len(image_path_list)):
+                output.write("%s,%s" % (image_path_list[i], label[i]))
+                output.write("\n")
+
+
 def dict2array(dict):
     array = []
     for key in dict:
@@ -207,13 +219,13 @@ if __name__ == '__main__':
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate valid csv
     gallery_valid, probe_valid, glabels_valid, plabels_valid = generate_gallery(X_valid, len(X_valid))
-    generate_path_csv(gallery_valid, 'data/valid_gallery.csv')
-    generate_path_csv(probe_valid, 'data/valid_probe.csv')
+    generate_path_label_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
+    generate_path_label_csv('data/valid_probe.csv', probe_valid, plabels_valid)
     print('gallery_valid: ' + str(len(gallery_valid)))
     print('probe_valid: ' + str(len(probe_valid)))
     # generate predict csv
     gallery_predict, prob_predict = generate_predict_path()
-    generate_path_csv(gallery_predict, 'data/predict_gallery.csv')
-    generate_path_csv(prob_predict, 'data/predict_probe.csv')
+    generate_path_label_csv('data/predict_gallery.csv', gallery_predict)
+    generate_path_label_csv('data/predict_probe.csv', prob_predict)
     print('gallery_predict: ' + str(len(gallery_predict)))
     print('prob_predict: ' + str(len(prob_predict)))
