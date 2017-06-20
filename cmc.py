@@ -224,7 +224,7 @@ def map(distmat,glabels=None, plabels=None, top_n=None, n_repeat=10):
         n_repeat: The number of random sampling times
 
     Returns:
-        A vector represents the MAP
+        A float number represents the MAP
     """
     m, n = distmat.shape
     if glabels is None and plabels is None:
