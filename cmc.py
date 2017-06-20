@@ -3,8 +3,8 @@
 
 import numpy as np
 import random
-from scipy.spatial.distance import pdist, squareform, cdist
-from generate_label import get_dict_ids_images, generate_gallery
+from scipy.spatial.distance import cdist
+
 
 
 def _cmc_core(D, G, P):
@@ -171,21 +171,44 @@ def count_lazy(distfunc, glabels=None, plabels=None, n_selected_labels=None, n_r
 
 def compute_distmat(gallery, probe):
     """
-    compute distance of each image feature pairs in gallery and probe, L2
+    compute distance of each image feature pairs in gallery and probe, L2 norm
     :param gallery:     gallery image features, 2D ndarray(number of gallery x feature dim)
     :param probe:       probe image features, 2D ndarray(number of probe x feature dim)
-    :return:            distance mat, 2D ndarray(number of gallery x number of probe)
+    :return:            distance mat, 2D ndarray (number of probe x number of gallery)
     """
-    return cdist(gallery, probe)
+    return np.transpose(cdist(gallery,probe))
 
 
+def sorted_image_names(distmat, g_name_array, top_n):
+    """
+    Based on distance mat, return sorted gallery image names.
+    Input distmat is an ndarray(n_probe x n_gallery), result is (n_probe x top_n),
+    each row represents a quary result of that probe.
+    :param distmat:         distance mat, 2D ndarray (n_probe x n_gallery)
+    :param g_name_array:    name of gallery images, must be a 1D ndarray (1 x n_gallery)
+    :param top_n:           number of images that matches each probe image
+    :return:                the top n images matches each probe image, 2D ndarray (n_probe x top_n)
+    """
+    m, n = distmat.shape
+    order = np.argsort(distmat, axis=1)
+    if n > top_n:
+        return g_name_array[order][:,:top_n]
+    else:
+        return g_name_array[order]
+
+
+
+# a demo
 if __name__ == '__main__':
-    # 生成gallery和probe
-    train_eval = get_dict_ids_images()
-    gallery, probe, glabels, plabels = generate_gallery(train_eval, 800)
-
-    # 计算距离矩阵 demo
-    distmat = compute_distmat(np.array([[0, 1], [1, 5], [3, 2], [3, 3]]), np.array([[1, 0], [2, 3], [1, 1]]))
-    # 计算cmc
-    cmc_mean = count(distmat=distmat, glabels=glabels, plabels=plabels, n_selected_labels=50, n_repeat=10)
+    #计算距离矩阵 demo
+    g = np.array([[0, 1],[1,5],[3,2],[3,3]])
+    p = np.array([[1,0],[2,3],[1,1]])
+    distmat = compute_distmat(g, p)
+    g_names = np.sum(g**2,axis=1)
+    # g_names =['a','b','c','d']
+    # #计算cmc
+    # cmc_mean = count(distmat=distmat,glabels=glabels,plabels=plabels,n_selected_labels=50,n_repeat=10)
+    # print(cmc_mean)
+    sort_g_names = sorted_image_names(distmat, g_names, top_n=2)
+    print(sort_g_names)
     print('done')
