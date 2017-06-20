@@ -6,11 +6,13 @@ import random
 from scipy.spatial.distance import cdist
 
 
+
 def _cmc_core(D, G, P):
     m, n = D.shape
     order = np.argsort(D, axis=0)
-    match = (G[order] == P)         # G[order],按距离排序的矩阵，第一行为top1,从左到右为各plabel对应的glabel
-    return (match.sum(axis=1) * 1.0 / n).cumsum()   # 从上至下累积求和
+    match = (G[order] == P)  # G[order],按距离排序的矩阵，第一行为top1,从左到右为各plabel对应的glabel
+    return (match.sum(axis=1) * 1.0 / n).cumsum()  # 从上至下累积求和
+
 
 def count(distmat, glabels=None, plabels=None, n_selected_labels=None, n_repeat=100):
     """Compute the Cumulative Match Characteristic(CMC)
@@ -57,8 +59,8 @@ def count(distmat, glabels=None, plabels=None, n_selected_labels=None, n_repeat=
     for r in range(n_repeat):
         # Randomly select gallery labels
         ind = np.random.choice(unique_glabels.size,
-                                  n_selected_labels,
-                                  replace=False)
+                               n_selected_labels,
+                               replace=False)
         ind.sort()
         g = unique_glabels[ind]
 
@@ -81,6 +83,7 @@ def count(distmat, glabels=None, plabels=None, n_selected_labels=None, n_repeat=
         ret += _cmc_core(subdist, g, p)
 
     return ret / n_repeat
+
 
 def count_lazy(distfunc, glabels=None, plabels=None, n_selected_labels=None, n_repeat=100):
     """Compute the Cumulative Match Characteristic(CMC) in a lazy manner
@@ -139,8 +142,8 @@ def count_lazy(distfunc, glabels=None, plabels=None, n_selected_labels=None, n_r
     for r in range(n_repeat):
         # Randomly select gallery labels
         ind = np.random.choice(unique_glabels.size,
-                                  n_selected_labels,
-                                  replace=False)
+                               n_selected_labels,
+                               replace=False)
         ind.sort()
         g = unique_glabels[ind]
 
@@ -209,3 +212,4 @@ if __name__ == '__main__':
     sort_g_names = sorted_image_names(distmat, g_names, top_n=2)
     print(sort_g_names)
     print('done')
+
