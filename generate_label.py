@@ -139,14 +139,41 @@ def generate_gallery_csv(gallery):
             output.write("\n")
 
 
+def dict2array(dict):
+    array = []
+    for key in dict:
+        array.append([])
+        array[-1].append(key)
+        for value in dict[key]:
+            array[-1].append(value)
+    return array
 
-train_eval = get_dict_ids_images()
 
-#dataset_triplet_pair = get_triplet_pair(train_eval)
+def array2dict(array):
+    dict = {}
+    for item in array:
+        dict[item[0]] = []
+        dict[item[0]].append(item[1])
+        for element in item[2:]:
+            dict[item[0]].append(element)
+    return dict
 
-#generate_train_eval(dataset_triplet_pair)
 
-gallery, probe, glabels, plabels = generate_gallery(train_eval, 500)
+id_path = get_dict_ids_images()
+id_path_array = dict2array(id_path)
+
+X_train_array, X_test_array = train_test_split(id_path_array, test_size=0.2, random_state=1)
+
+X_train = array2dict(X_train_array)
+X_test = array2dict(X_test_array)
+# print X_train_array[10]
+# print X_train[X_train_array[10][0]]
+
+dataset_triplet_pair = get_triplet_pair(X_train)
+
+generate_train_eval(dataset_triplet_pair)
+
+gallery, probe, glabels, plabels = generate_gallery(X_test, 500)
 
 generate_gallery_csv(gallery)
 
