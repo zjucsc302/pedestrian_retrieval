@@ -208,7 +208,7 @@ if __name__ == '__main__':
     id_path = get_dict_ids_images()
     # split train and valid date
     id_path_array = dict2array(id_path)
-    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.2, random_state=1)
+    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.15, random_state=1)
     X_train = array2dict(X_train_array)
     X_valid = array2dict(X_valid_array)
     print('train id: ' + str(len(X_train)))
