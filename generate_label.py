@@ -219,6 +219,11 @@ if __name__ == '__main__':
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate valid csv
     gallery_valid, probe_valid, glabels_valid, plabels_valid = generate_gallery(X_valid, len(X_valid))
+    # valid can be divided by base_number
+    base_number = 10
+    gallery_valid, probe_valid, glabels_valid, plabels_valid = map(lambda x: x[:len(x) - len(x) % base_number],
+                                                                   [gallery_valid, probe_valid, glabels_valid,
+                                                                    plabels_valid])
     generate_path_label_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
     generate_path_label_csv('data/valid_probe.csv', probe_valid, plabels_valid)
     print('gallery_valid: ' + str(len(gallery_valid)))
