@@ -206,7 +206,7 @@ def _map_core(D, G, P, top_n):
     return ap.mean()
 
 
-def map(distmat,glabels=None, plabels=None, top_n=None, n_repeat=10):
+def mAP(distmat,glabels=None, plabels=None, top_n=None, n_repeat=10):
     """Compute the Mean Average Precision(MAP)
 
     Args:
@@ -283,7 +283,7 @@ if __name__ == '__main__':
     # #计算cmc
     cmc_mean1 = count(distmat=distmat,n_selected_labels=3,n_repeat=10)
     cmc_mean2 = count(distmat=distmat, n_repeat=10)
-    map1, map2 = map(distmat,glabels=g_labels,plabels=p_labels)
+    map1, map2 = mAP(distmat,glabels=g_labels,plabels=p_labels)
     print('cmc ', cmc_mean1, cmc_mean2 ,'map ',map1,map2)
     sort_g_names = sorted_image_names(distmat, g_names, top_n=2)
     print(sort_g_names)
