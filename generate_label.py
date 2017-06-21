@@ -43,47 +43,51 @@ def get_dict_ids_images():
 
 def generate_predict_path():
     current_file_path = sys.path[0]
-    gallery_folder_path = os.path.join(current_file_path, 'data/new_online_vali_set_UPLOAD_VERSION/vq_path')
-    prob_folder_path = os.path.join(current_file_path, 'data/new_online_vali_set_UPLOAD_VERSION/vr_path')
-    gallery_predict = []
+    prob_folder_path = os.path.join(current_file_path, 'data/new_online_vali_set_UPLOAD_VERSION/vq_path')
+    gallery_folder_path = os.path.join(current_file_path, 'data/new_online_vali_set_UPLOAD_VERSION/vr_path')
     prob_predict = []
-
-    for root, dirs, files in os.walk(gallery_folder_path):
-        for name in files:
-            gallery_predict.append(os.path.join(gallery_folder_path, name))
+    gallery_predict = []
     for root, dirs, files in os.walk(prob_folder_path):
         for name in files:
             prob_predict.append(os.path.join(prob_folder_path, name))
+    for root, dirs, files in os.walk(gallery_folder_path):
+        for name in files:
+            gallery_predict.append(os.path.join(gallery_folder_path, name))
     return gallery_predict, prob_predict
 
 
 def generate_gallery(img_dict, n):
     """
     generate gallery and probe
-    gallery -> vq_path (id is unique in vq_path)
-    probe -> vr_path
+    gallery -> vr_path (image number of a same id more than 3 in vq_path)
+    probe -> vq_path (image number of a same id is 1 or 2 in vq_path)
     :param image_dict:  id:image dictionary, a dict
-    :param n:           size of gallery (n different ids), int
-    :return:            [gallery(str list of image names), probe(str list of image names),
-                        glabels(ndarray), plabels(ndarray)]
+    :param n:           size of probe (n different ids), int
+    :return:            [probe(str list of image names), gallery(str list of image names),
+                        plabels(ndarray), glabels(ndarray)]
     """
-    gallery = []
     probe = []
-    glabels = []
+    gallery = []
     plabels = []
-    for id in img_dict.keys():
+    glabels = []
+    for id in img_dict.keys()[:n]:
         imgs = img_dict[id]
-        img = random.choice(imgs)  # choice a image and put it into gallery, others in probe
+        # choice a image and put it into probe
+        img = random.choice(imgs)
         imgs.pop(imgs.index(img))
-        gallery.append(img)
-        glabels.append(int(id))
-        for img in imgs:
-            plabels.append(int(id))
+        probe.append(img)
+        plabels.append(int(id))
+        # 50% probability choice a image and put it into probe, others in gallery
+        if random.random() > 0.5:
+            img = random.choice(imgs)
+            imgs.pop(imgs.index(img))
             probe.append(img)
-        if len(glabels) >= n:
-            break
-
-    return gallery, probe, np.array(glabels).astype(np.int32), np.array(plabels).astype(np.int32)
+        plabels.append(int(id))
+        # generate gallery
+        for img in imgs:
+            glabels.append(int(id))
+            gallery.append(img)
+    return probe, gallery, np.array(plabels).astype(np.int32), np.array(glabels).astype(np.int32)
 
 
 def get_neg_id(ref_id, info_dict):
@@ -171,7 +175,7 @@ def generate_path_csv(image_path_list, path_csv):
             output.write("\n")
 
 
-def generate_path_label_csv(path_csv, image_path_list, label = None):
+def generate_path_label_csv(path_csv, image_path_list, label=None):
     with open(path_csv, 'w') as output:
         if label is None:
             for i in range(len(image_path_list)):
@@ -218,19 +222,19 @@ if __name__ == '__main__':
     generate_train_eval(dataset_triplet_pair, 'data/train.csv')
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate valid csv
-    gallery_valid, probe_valid, glabels_valid, plabels_valid = generate_gallery(X_valid, len(X_valid))
+    probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
     # valid can be divided by base_number
     base_number = 10
-    gallery_valid, probe_valid, glabels_valid, plabels_valid = map(lambda x: x[:len(x) - len(x) % base_number],
-                                                                   [gallery_valid, probe_valid, glabels_valid,
-                                                                    plabels_valid])
-    generate_path_label_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
+    probe_valid, gallery_valid, plabels_valid, glabels_valid = map(lambda x: x[:len(x) - len(x) % base_number],
+                                                                   [probe_valid, gallery_valid, plabels_valid,
+                                                                    glabels_valid])
     generate_path_label_csv('data/valid_probe.csv', probe_valid, plabels_valid)
-    print('gallery_valid: ' + str(len(gallery_valid)))
+    generate_path_label_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
     print('probe_valid: ' + str(len(probe_valid)))
+    print('gallery_valid: ' + str(len(gallery_valid)))
     # generate predict csv
     gallery_predict, prob_predict = generate_predict_path()
-    generate_path_label_csv('data/predict_gallery.csv', gallery_predict)
     generate_path_label_csv('data/predict_probe.csv', prob_predict)
-    print('gallery_predict: ' + str(len(gallery_predict)))
+    generate_path_label_csv('data/predict_gallery.csv', gallery_predict)
     print('prob_predict: ' + str(len(prob_predict)))
+    print('gallery_predict: ' + str(len(gallery_predict)))
