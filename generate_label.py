@@ -179,7 +179,7 @@ def generate_path_label_csv(path_csv, image_path_list, label=None):
     with open(path_csv, 'w') as output:
         if label is None:
             for i in range(len(image_path_list)):
-                output.write("%s,%s" % (image_path_list[i], -1))
+                output.write("%s,%s" % (image_path_list[i], i))
                 output.write("\n")
         else:
             for i in range(len(image_path_list)):
