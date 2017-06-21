@@ -6,7 +6,7 @@ import os, sys
 import random
 from sklearn.model_selection import train_test_split
 from cmc import *
-
+import cPickle as pickle
 
 def get_dict_ids_images():
     vali_info = ElementTree.parse('data/PedestrianRetrieval_vali/vali.xml')
@@ -209,7 +209,15 @@ def array2dict(array):
 
 if __name__ == '__main__':
     # import train and valid data
-    id_path = get_dict_ids_images()
+    id_path = {}
+    pfile = 'data/id_path.pkl'
+    if os.path.exists(pfile):
+        with open(pfile, "rb") as f:
+            id_path = pickle.load(f)
+    else:
+        id_path = get_dict_ids_images()
+        with open(pfile, "wb") as f:
+            pickle.dump(id_path, f)
     # split train and valid date
     id_path_array = dict2array(id_path)
     X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.15, random_state=1)
