@@ -4,6 +4,7 @@
 import numpy as np
 import random
 from scipy.spatial.distance import cdist
+import numpy.matlib as matlib
 
 
 def _cmc_core(D, G, P):
@@ -198,9 +199,11 @@ def _map_core(D, G, P, top_n):
     m, n = D.shape
     order = np.argsort(D, axis=0)
     match = (G[order] == P)                 # G[order],按距离排序的矩阵，第一行为top1,从左到右为各plabel对应的glabel
-    cump = match.cumsum(0)*1.0 / m         # 从上至下累积求和
+    cump = match.cumsum(0)*1.0 / matlib.repmat(np.arange(1,m+1,1).reshape([m,1]),1,n)         # 从上至下累积求和
     p = (match*cump)[:top_n]
-    return np.mean(p.sum(axis=1))
+    ap = p.sum(axis=0) / match[:top_n].sum(0)
+    ap[np.isnan(ap)] = 0
+    return ap.mean()
 
 
 def map(distmat,glabels=None, plabels=None, top_n=None, n_repeat=10):
@@ -239,7 +242,6 @@ def map(distmat,glabels=None, plabels=None, top_n=None, n_repeat=10):
     if top_n is None:
         top_n = unique_glabels.size
     ret1 = 0
-    ret2 = 0
     for r in range(n_repeat):
         # Randomly select gallery labels
         ind = np.random.choice(unique_glabels.size,
@@ -265,23 +267,24 @@ def map(distmat,glabels=None, plabels=None, top_n=None, n_repeat=10):
 
         # Compute MAP
         ret1 += _map_core(subdist, g, p, top_n)
-        ret2 += _map_core(distmat, glabels, plabels,top_n)
+    ret2 = _map_core(distmat, glabels, plabels,top_n)
 
-    return ret1 / n_repeat, ret2/ n_repeat
+    return ret1 / n_repeat, ret2
 
 # a demo
 if __name__ == '__main__':
     #计算距离矩阵 demo
     g = np.array([[0, 1],[1,5],[3,2],[3,3]])
-    g_labels = [1,2,3,2]
+    g_labels = [1,3,3,4]
     p = np.array([[1,0],[2,3],[1,1]])
-    p_labels = [1,2,3]
+    p_labels = [2,1,3]
     distmat = compute_distmat(g, p)
     g_names = np.sum(g**2,axis=1)
     # #计算cmc
-    cmc_mean = count(distmat=distmat,n_selected_labels=3,n_repeat=10)
+    cmc_mean1 = count(distmat=distmat,n_selected_labels=3,n_repeat=10)
+    cmc_mean2 = count(distmat=distmat, n_repeat=10)
     map1, map2 = map(distmat,glabels=g_labels,plabels=p_labels)
-    print('cmc ', cmc_mean,'map ',map1,map2)
+    print('cmc ', cmc_mean1, cmc_mean2 ,'map ',map1,map2)
     sort_g_names = sorted_image_names(distmat, g_names, top_n=2)
     print(sort_g_names)
     print('done')
