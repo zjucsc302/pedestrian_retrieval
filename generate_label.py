@@ -82,7 +82,7 @@ def generate_gallery(img_dict, n):
             img = random.choice(imgs)
             imgs.pop(imgs.index(img))
             probe.append(img)
-        plabels.append(int(id))
+            plabels.append(int(id))
         # generate gallery
         for img in imgs:
             glabels.append(int(id))
@@ -231,11 +231,6 @@ if __name__ == '__main__':
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate valid csv
     probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
-    # valid can be divided by base_number
-    base_number = 10
-    probe_valid, gallery_valid, plabels_valid, glabels_valid = map(lambda x: x[:len(x) - len(x) % base_number],
-                                                                   [probe_valid, gallery_valid, plabels_valid,
-                                                                    glabels_valid])
     generate_path_label_csv('data/valid_probe.csv', probe_valid, plabels_valid)
     generate_path_label_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
     print('probe_valid: ' + str(len(probe_valid)))
