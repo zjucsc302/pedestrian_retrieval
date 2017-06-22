@@ -6,44 +6,51 @@ import os
 from tensorflow.python.platform import gfile
 import csv
 
-#VGG_MEAN = [103.939, 116.779, 123.68]
+# VGG_MEAN = [103.939, 116.779, 123.68]
 VGG_MEAN = [98.200, 98.805, 102.044]
 
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
 
+
 class Train_Flags():
     def __init__(self):
 
-        self.current_file_path = '/home/zj/my_workspace/smart_city_workspace/pedestrian_retrieval/VGG_model'
-        self.dataset_train_csv_file_path = '/home/zj/my_workspace/smart_city_workspace/pedestrian_retrieval/data/train.csv'
-        self.dataset_valid_gallery_csv_file_path = '/home/zj/my_workspace/smart_city_workspace/pedestrian_retrieval/data/valid_gallery.csv'
-        self.dataset_valid_probe_csv_file_path = '/home/zj/my_workspace/smart_city_workspace/pedestrian_retrieval/data/valid_probe.csv'
+        self.current_file_path = os.path.abspath('.')
+        self.dataset_train_csv_file_path = os.path.abspath('../data/train.csv')
+        self.dataset_valid_gallery_csv_file_path = os.path.abspath('../data/valid_gallery.csv')
+        self.dataset_valid_probe_csv_file_path = os.path.abspath('../data/valid_probe.csv')
+        self.dataset_predict_gallery_csv_file_path = os.path.abspath('../data/predict_gallery.csv')
+        self.dataset_predict_probe_csv_file_path = os.path.abspath('../data/predict_probe.csv')
 
         self.max_step = 1000000
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
 
-        self.batch_size = 10
+        self.train_batch_size = 10
+        self.test_batch_size = 30
         # test_num should be divided by batch_size
         with open(self.dataset_valid_gallery_csv_file_path, 'rb') as f:
             self.valid_gallery_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_valid_probe_csv_file_path, 'rb') as f:
             self.valid_probe_num = sum([1 for row in csv.reader(f)])
-        self.test_output_feature_dim = 100
+        with open(self.dataset_predict_gallery_csv_file_path, 'rb') as f:
+            self.predict_gallery_num = sum([1 for row in csv.reader(f)])
+        with open(self.dataset_predict_probe_csv_file_path, 'rb') as f:
+            self.predict_probe_num = sum([1 for row in csv.reader(f)])
+        self.output_feature_dim = 100
 
         self.initial_learning_rate = 0.001
         self.learning_rate_decay_factor = 0.9
         self.moving_average_decay = 0.999999
 
-        self.distance_alfa = 0.5
+        self.distance_alfa = 0.2
 
-        self.output_summary_path = os.path.join(self.current_file_path, 'result','summary')
-        self.output_check_point_path = os.path.join(self.current_file_path, 'result','check_point')
-        self.output_test_features_path = os.path.join(self.current_file_path, 'result','test_features')
+        self.output_summary_path = os.path.join(self.current_file_path, 'result', 'summary')
+        self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
+        self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
 
         self.check_path_exist()
-
 
     def check_path_exist(self):
         if not gfile.Exists(self.output_summary_path):
@@ -110,7 +117,6 @@ class Vgg19:
         self.conv4_4 = self.conv_layer(self.conv4_3, 512, 512, "conv4_4")
         self.pool4 = self.max_pool(self.conv4_4, 'pool4')
 
-
         '''
         
         self.conv5_1 = self.conv_layer(self.pool4, 512, 512, "conv5_1")
@@ -149,14 +155,12 @@ class Vgg19:
 
         self.data_dict = None
 
-
-
     # calculate function: the triplet batch output loss
     def calc_loss(self, logits, distance_alfa):
 
         split_refs, split_poss, split_negs = tf.split(logits, num_or_size_splits=3, axis=0)
 
-        #for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
+        # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
         float_split_refs = tf.cast(split_refs, dtype=tf.float32)
         float_split_poss = tf.cast(split_poss, dtype=tf.float32)
         float_split_negs = tf.cast(split_negs, dtype=tf.float32)
@@ -173,7 +177,6 @@ class Vgg19:
         cost = tf.reduce_mean(tf.maximum(basic_cost, 0.0), 0)
 
         tf.add_to_collection('losses', cost)
-
 
     def train_batch_inputs(self, dataset_csv_file_path, batch_size):
 
@@ -213,9 +216,36 @@ class Vgg19:
             )
             return refs, poss, negs
 
-    def test_batch_inputs(self, dataset_test_csv_file_path, batch_size):
+    def valid_batch_inputs(self, dataset_test_csv_file_path, batch_size):
 
-        with tf.name_scope('valid_gallery_batch_processing'):
+        with tf.name_scope('valid_batch_processing'):
+            if (os.path.isfile(dataset_test_csv_file_path) != True):
+                raise ValueError('No data files found for this test dataset')
+
+            filename_queue = tf.train.string_input_producer([dataset_test_csv_file_path], shuffle=False)
+            reader = tf.TextLineReader()
+            _, serialized_example = reader.read(filename_queue)
+            test_image_path, test_image_label = tf.decode_csv(serialized_example, [["test_image"], ["label"]])
+
+            # input
+            test_file = tf.read_file(test_image_path)
+            test_image = tf.image.decode_jpeg(test_file, channels=3)
+            test_image = tf.cast(test_image, dtype=tf.int16)
+
+            resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH))
+
+            # generate batch
+            tests = tf.train.batch(
+                [resized_test, test_image_label],
+                batch_size=batch_size,
+                num_threads=2,
+                capacity=1 + batch_size
+            )
+            return tests
+
+    def predict_batch_inputs(self, dataset_test_csv_file_path, batch_size):
+
+        with tf.name_scope('predict_batch_processing'):
             if (os.path.isfile(dataset_test_csv_file_path) != True):
                 raise ValueError('No data files found for this test dataset')
 
@@ -298,7 +328,6 @@ class Vgg19:
 
         return var
 
-
     def save_npy(self, sess, npy_path="./vgg19-save.npy"):
         assert isinstance(sess, tf.Session)
 
@@ -321,43 +350,43 @@ class Vgg19:
         return count
 
 
-    # def fc_layer_fine_tune(self, bottom, in_size, out_size, name):
-    #     with tf.variable_scope(name):
-    #         weights, biases = self.get_fc_var_fine_tune(in_size, out_size, name)
-    #
-    #         x = tf.reshape(bottom, [-1, in_size])
-    #         fc = tf.nn.bias_add(tf.matmul(x, weights), biases)
-    #
-    #         return fc
-    #
-    # def get_fc_var_fine_tune(self, in_size, out_size, name):
-    #     weights = self._variable_with_weight_decay('weights', shape=[in_size, out_size],
-    #         stddev=0.001, wd=0.0, trainable=True)
-    #     biases = self._variable_on_gpu('biases', [out_size], tf.constant_initializer(0.001))
-    #
-    #     return weights, biases
-    #
-    # def _variable_on_gpu(self, name, shape, initializer):
-    #     var = tf.get_variable(name, shape, initializer=initializer)
-    #     return var
-    #
-    # def _variable_with_weight_decay(self, name, shape, stddev, wd, trainable=True):
-    #     var = self._variable_on_gpu(name, shape, tf.truncated_normal_initializer(stddev=stddev))
-    #     return var
-    #
-    # def conv_layer_fine_tune(self, bottom, in_channels, out_channels, name):
-    #     with tf.variable_scope(name):
-    #         filt, conv_biases = self.get_conv_var_fine_tune(3, in_channels, out_channels, name)
-    #
-    #         conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
-    #         bias = tf.nn.bias_add(conv, conv_biases)
-    #         relu = tf.nn.relu(bias)
-    #
-    #         return relu
-    #
-    # def get_conv_var_fine_tune(self, filter_size, in_channels, out_channels, name):
-    #
-    #     filters = tf.truncated_normal([filter_size, filter_size, in_channels, out_channels], 0.0, 0.001)
-    #     biases = tf.truncated_normal([out_channels], .0, .001)
-    #
-    #     return filters, biases
+        # def fc_layer_fine_tune(self, bottom, in_size, out_size, name):
+        #     with tf.variable_scope(name):
+        #         weights, biases = self.get_fc_var_fine_tune(in_size, out_size, name)
+        #
+        #         x = tf.reshape(bottom, [-1, in_size])
+        #         fc = tf.nn.bias_add(tf.matmul(x, weights), biases)
+        #
+        #         return fc
+        #
+        # def get_fc_var_fine_tune(self, in_size, out_size, name):
+        #     weights = self._variable_with_weight_decay('weights', shape=[in_size, out_size],
+        #         stddev=0.001, wd=0.0, trainable=True)
+        #     biases = self._variable_on_gpu('biases', [out_size], tf.constant_initializer(0.001))
+        #
+        #     return weights, biases
+        #
+        # def _variable_on_gpu(self, name, shape, initializer):
+        #     var = tf.get_variable(name, shape, initializer=initializer)
+        #     return var
+        #
+        # def _variable_with_weight_decay(self, name, shape, stddev, wd, trainable=True):
+        #     var = self._variable_on_gpu(name, shape, tf.truncated_normal_initializer(stddev=stddev))
+        #     return var
+        #
+        # def conv_layer_fine_tune(self, bottom, in_channels, out_channels, name):
+        #     with tf.variable_scope(name):
+        #         filt, conv_biases = self.get_conv_var_fine_tune(3, in_channels, out_channels, name)
+        #
+        #         conv = tf.nn.conv2d(bottom, filt, [1, 1, 1, 1], padding='SAME')
+        #         bias = tf.nn.bias_add(conv, conv_biases)
+        #         relu = tf.nn.relu(bias)
+        #
+        #         return relu
+        #
+        # def get_conv_var_fine_tune(self, filter_size, in_channels, out_channels, name):
+        #
+        #     filters = tf.truncated_normal([filter_size, filter_size, in_channels, out_channels], 0.0, 0.001)
+        #     biases = tf.truncated_normal([out_channels], .0, .001)
+        #
+        #     return filters, biases
