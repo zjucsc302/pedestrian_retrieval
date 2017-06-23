@@ -26,8 +26,8 @@ def _model_loss(vgg_class):
     return total_loss
 
 
-def train():
-    """train model, generate valid features"""
+def train(retain_flag = True):
+    # train model, generate valid features
     with tf.Graph().as_default():
 
         # build a VGG19 class object
@@ -88,6 +88,14 @@ def train():
         summary_writer = tf.summary.FileWriter(train_flags.output_summary_path, graph=sess.graph)
         saver = tf.train.Saver(tf.global_variables())
 
+        # retrain or continue
+        if not retain_flag:
+            # load checkpoint
+            ckpt = tf.train.get_checkpoint_state(train_flags.output_check_point_path)
+            if ckpt and ckpt.model_checkpoint_path:
+                saver.restore(sess, ckpt.model_checkpoint_path)
+                print('load checkpoint')
+
         print('start training')
         for step in range(train_flags.max_step):
             start_time = time.time()
@@ -107,8 +115,9 @@ def train():
             if step % 5000 == 0 or (step + 1) == train_flags.max_step:
             # if (step % 5000 == 0 or (step + 1) == train_flags.max_step) and step != 0:
                 # Save the model checkpoint periodically.
-                checkpoint_path = os.path.join(train_flags.output_check_point_path, 'model.ckpt')
+                checkpoint_path = os.path.join(train_flags.output_check_point_path, train_flags.checkpoint_name)
                 saver.save(sess, checkpoint_path, global_step=step)
+
                 # do test: send every image in valid_gallery.csv and valid_probe.csv, then get feature vector
                 # save all feature vector in npy
                 def valid(gallery_flag):
@@ -122,15 +131,15 @@ def train():
                     end_len = features_num % batch_len
                     for batch_index in range(0, features_num - end_len, batch_len):
                         batch_feature, batch_label = sess.run([vgg.fc7, valid_label],
-                                                          feed_dict={train_mode: False,
-                                                                     gallery_mode: gallery_flag})
+                                                              feed_dict={train_mode: False,
+                                                                         gallery_mode: gallery_flag})
                         features[batch_index: batch_index + batch_len, :] = batch_feature
                         labels[batch_index: batch_index + batch_len] = batch_label
                         print(batch_name + str(batch_index) + '-' + str(batch_index + batch_len - 1))
                     if end_len != 0:
                         batch_feature, batch_label = sess.run([vgg.fc7, valid_label],
-                                                          feed_dict={train_mode: False,
-                                                                     gallery_mode: gallery_flag})
+                                                              feed_dict={train_mode: False,
+                                                                         gallery_mode: gallery_flag})
                         features[batch_index + batch_len: batch_index + batch_len + end_len, :] = batch_feature[
                                                                                                   :end_len]
                         labels[batch_index + batch_len: batch_index + batch_len + end_len] = batch_label[:end_len]
@@ -141,9 +150,10 @@ def train():
                     features_csv_name = 'valid_gallery_features_step-%d.npy' if gallery_flag else 'valid_probe_features_step-%d.npy'
                     features_csv_path = os.path.join(train_flags.output_test_features_path, features_csv_name % step)
                     np.save(features_csv_path, features)
-                    labels_csv_name = 'valid_probe_features_step-%d.npy' if gallery_flag else 'valid_probe_labels_step-%d.npy'
+                    labels_csv_name = 'valid_gallery_labels_step-%d.npy' if gallery_flag else 'valid_probe_labels_step-%d.npy'
                     labels_csv_path = os.path.join(train_flags.output_test_features_path, labels_csv_name % step)
                     np.save(labels_csv_path, labels)
+
                 valid(False)
                 valid(True)
 
@@ -153,7 +163,7 @@ def train():
 
 
 def predict(gallery_flag):
-    '''generate predict features'''
+    # generate predict features
     with tf.Graph().as_default():
         # build a VGG19 class object
         vgg = Vgg19(train_test_mode=tf.constant(False, tf.bool))
@@ -213,6 +223,6 @@ def predict(gallery_flag):
 
 
 if __name__ == '__main__':
-    train()
+    train(retain_flag=False)
     # predict(gallery_flag=False)
     # predict(gallery_flag=True)
