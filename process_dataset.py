@@ -1,6 +1,6 @@
 # for VGG: reshape every image to size(224, 224, 3)
 
-import cv2
+
 import os, sys
 
 from os import walk
