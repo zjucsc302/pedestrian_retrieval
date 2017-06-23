@@ -6,8 +6,8 @@ import os
 from tensorflow.python.platform import gfile
 import csv
 
-# VGG_MEAN = [103.939, 116.779, 123.68]
-VGG_MEAN = [98.200, 98.805, 102.044]
+VGG_MEAN = [103.939, 116.779, 123.68]
+# VGG_MEAN = [98.200, 98.805, 102.044]
 
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 224
@@ -22,13 +22,24 @@ class Train_Flags():
         self.dataset_valid_probe_csv_file_path = os.path.abspath('../data/valid_probe.csv')
         self.dataset_predict_gallery_csv_file_path = os.path.abspath('../data/predict_gallery.csv')
         self.dataset_predict_probe_csv_file_path = os.path.abspath('../data/predict_probe.csv')
+        self.output_summary_path = os.path.join(self.current_file_path, 'result', 'summary')
+        self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
+        self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
+        self.check_path_exist()
+        self.checkpoint_name = 'model_0.4.ckpt'
 
         self.max_step = 1000000
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
-
         self.train_batch_size = 10
         self.test_batch_size = 30
+
+        self.output_feature_dim = 100
+        self.initial_learning_rate = 0.001
+        self.learning_rate_decay_factor = 0.96
+        self.moving_average_decay = 0.999999
+        self.distance_alfa = 0.2
+
         # test_num should be divided by batch_size
         with open(self.dataset_valid_gallery_csv_file_path, 'rb') as f:
             self.valid_gallery_num = sum([1 for row in csv.reader(f)])
@@ -38,19 +49,6 @@ class Train_Flags():
             self.predict_gallery_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_predict_probe_csv_file_path, 'rb') as f:
             self.predict_probe_num = sum([1 for row in csv.reader(f)])
-        self.output_feature_dim = 100
-
-        self.initial_learning_rate = 0.001
-        self.learning_rate_decay_factor = 0.9
-        self.moving_average_decay = 0.999999
-
-        self.distance_alfa = 0.2
-
-        self.output_summary_path = os.path.join(self.current_file_path, 'result', 'summary')
-        self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
-        self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
-
-        self.check_path_exist()
 
     def check_path_exist(self):
         if not gfile.Exists(self.output_summary_path):
