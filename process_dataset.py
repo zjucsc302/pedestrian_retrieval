@@ -32,10 +32,5 @@ def calc_dataset_mean(files_list):
 
     print np.mean(rgb_mean, 0)
 
-
-#calc_dataset_mean(f)
-
-each_rgb = skimage.io.imread('images2.jpg')
-print each_rgb.shape
-print np.mean(np.mean(each_rgb,0),0)
-
+if __name__ == '__main__':
+    calc_dataset_mean(f)

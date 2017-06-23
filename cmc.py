@@ -7,7 +7,7 @@ from scipy.spatial.distance import cdist
 import numpy.matlib as matlib
 import cPickle as pickle
 from xml.dom.minidom import Document
-
+import os
 
 def _cmc_core(D, G, P):
     m, n = D.shape
@@ -258,9 +258,29 @@ def mAP(distmat, glabels=None, plabels=None, top_n=None, n_repeat=10):
     return ret1 / n_repeat, ret2
 
 
-def valid_mAP():
+def train_1000_mAP():
+    print('train_1000_mAP()')
     # valid mAP
-    for step in range(5000, 65001, 5000):
+    g = np.load('VGG_model/result/test_features/train_1000_gallery_features.npy')
+    g_labels = np.load('VGG_model/result/test_features/train_1000_gallery_labels.npy')
+    p = np.load('VGG_model/result/test_features/train_1000_probe_features.npy')
+    p_labels = np.load('VGG_model/result/test_features/train_1000_probe_labels.npy')
+    distmat = compute_distmat(g, p)
+    map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
+    print('train_1000 map: %f, %f ' % (map1, map2))
+
+
+def valid_mAP():
+    print('valid_mAP()')
+    max_step = 0
+    for root, dirs, files in os.walk(os.path.abspath('./VGG_model/result/test_features')):
+        for name in files:
+            if 'valid_probe_features_step-' in name:
+                step = int(name.split('.')[0].split('-')[-1])
+                if step > max_step:
+                    max_step = step
+    # valid mAP
+    for step in range(5000, max_step + 1, 5000):
         g = np.load('VGG_model/result/test_features/valid_gallery_features_step-%d.npy' % step)
         g_labels = np.load('VGG_model/result/test_features/valid_gallery_labels_step-%d.npy' % step)
         p = np.load('VGG_model/result/test_features/valid_probe_features_step-%d.npy' % step)
@@ -300,6 +320,7 @@ def create_xml(pname, gnames):
 
 
 def generate_predict_xml():
+    print('generate_predict_xml()')
     g = np.load('VGG_model/result/test_features/predict_gallery_features.npy')
     p = np.load('VGG_model/result/test_features/predict_probe_features.npy')
     with open('data/predict_gallery_name.pkl', "rb") as f:
@@ -315,6 +336,7 @@ def generate_predict_xml():
 
 
 if __name__ == '__main__':
+    # train_1000_mAP()
     # valid_mAP()
     generate_predict_xml()
     # have to

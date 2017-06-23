@@ -17,7 +17,9 @@ class Train_Flags():
     def __init__(self):
 
         self.current_file_path = os.path.abspath('.')
-        self.dataset_train_csv_file_path = os.path.abspath('../data/train.csv')
+        self.dataset_train_csv_file_path = os.path.abspath('../data/train_triplet_pair.csv')
+        self.dataset_train_1000_gallery_csv_file_path = os.path.abspath('../data/train_1000_gallery.csv')
+        self.dataset_train_1000_probe_csv_file_path = os.path.abspath('../data/train_1000_probe.csv')
         self.dataset_valid_gallery_csv_file_path = os.path.abspath('../data/valid_gallery.csv')
         self.dataset_valid_probe_csv_file_path = os.path.abspath('../data/valid_probe.csv')
         self.dataset_predict_gallery_csv_file_path = os.path.abspath('../data/predict_gallery.csv')
@@ -40,7 +42,10 @@ class Train_Flags():
         self.moving_average_decay = 0.999999
         self.distance_alfa = 0.2
 
-        # test_num should be divided by batch_size
+        with open(self.dataset_train_1000_gallery_csv_file_path, 'rb') as f:
+            self.train_1000_gallery_num = sum([1 for row in csv.reader(f)])
+        with open(self.dataset_train_1000_probe_csv_file_path, 'rb') as f:
+            self.train_1000_probe_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_valid_gallery_csv_file_path, 'rb') as f:
             self.valid_gallery_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_valid_probe_csv_file_path, 'rb') as f:

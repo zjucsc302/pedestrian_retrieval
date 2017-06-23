@@ -27,6 +27,7 @@ model: vgg19, delete conv5,fc6,fc7,fc8, add fc6_new, fc7_new(100),  fine tuning 
 train: AdamOptimizer, initial_learning_rate = 0.001, self.learning_rate_decay_factor = 0.9
 parameter: distance_alfa = 0.2
 result: convergence, 110000 step, best 0.29
+
 2-6.22
 checkpoint:model_0.4
 model: vgg19, delete conv5,fc6,fc7,fc8, add fc6_new, fc7_new(100),  fine tuning all, resize image to 224*224

@@ -27,6 +27,7 @@ def _model_loss(vgg_class):
 
 
 def train(retain_flag = True):
+    print('train()')
     # train model, generate valid features
     with tf.Graph().as_default():
 
@@ -64,7 +65,7 @@ def train(retain_flag = True):
                                         train_flags.learning_rate_decay_factor,
                                         staircase=True)
         vars_to_optimize = [v for v in tf.trainable_variables() if
-                            (v.name.startswith('fc') | v.name.startswith('conv'))]
+                            (v.name.startswith('fc') | v.name.startswith('conv4'))]
         print '\nvariables to optimize'
         for v in vars_to_optimize:
             print v.name, v.get_shape().as_list()
@@ -162,17 +163,37 @@ def train(retain_flag = True):
         sess.close()
 
 
-def predict(gallery_flag):
+def generate_features(predict_flag, gallery_flag):
+    print('generate_features()')
     # generate predict features
     with tf.Graph().as_default():
         # build a VGG19 class object
         vgg = Vgg19(train_test_mode=tf.constant(False, tf.bool))
 
-        # define input data
-        input_path = train_flags.dataset_predict_gallery_csv_file_path if gallery_flag else train_flags.dataset_predict_probe_csv_file_path
-        predict_batch, predict_label = vgg.predict_batch_inputs(input_path, train_flags.test_batch_size)
+        # define parameter
+        if gallery_flag and predict_flag:
+            input_path = train_flags.dataset_predict_gallery_csv_file_path
+            features_num = train_flags.predict_gallery_num
+            features_csv_name = 'predict_gallery_features.npy'
+            labels_csv_name = 'predict_gallery_labels.npy'
+        elif gallery_flag and (not predict_flag):
+            input_path = train_flags.dataset_train_1000_gallery_csv_file_path
+            features_num = train_flags.train_1000_gallery_num
+            features_csv_name = 'train_1000_gallery_features.npy'
+            labels_csv_name = 'train_1000_gallery_labels.npy'
+        elif (not gallery_flag) and predict_flag:
+            input_path = train_flags.dataset_predict_probe_csv_file_path
+            features_num = train_flags.predict_probe_num
+            features_csv_name = 'predict_probe_features.npy'
+            labels_csv_name = 'predict_probe_labels.npy'
+        else:
+            input_path = train_flags.dataset_train_1000_probe_csv_file_path
+            features_num = train_flags.train_1000_probe_num
+            features_csv_name = 'train_1000_probe_features.npy'
+            labels_csv_name = 'train_1000_probe_labels.npy'
 
         # build model
+        predict_batch, predict_label = vgg.predict_batch_inputs(input_path, train_flags.test_batch_size)
         with tf.variable_scope(tf.get_variable_scope()):
             vgg.build(predict_batch, vgg.train_test_mode)
 
@@ -191,10 +212,8 @@ def predict(gallery_flag):
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-            print('start predict')
-
+            print('start generate features')
             # get feature batch
-            features_num = train_flags.predict_gallery_num if gallery_flag else train_flags.predict_probe_num
             features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
             labels = np.zeros(features_num, dtype=float)
             batch_len = train_flags.test_batch_size
@@ -211,10 +230,8 @@ def predict(gallery_flag):
                 print('batch_index: ' + str(batch_index + batch_len) + '-' + str(batch_index + batch_len + end_len - 1))
 
             # save feature
-            features_csv_name = 'predict_gallery_features.npy' if gallery_flag else 'predict_probe_features.npy'
             features_csv_path = os.path.join(train_flags.output_test_features_path, features_csv_name)
             np.save(features_csv_path, features)
-            labels_csv_name = 'predict_gallery_labels.npy' if gallery_flag else 'predict_probe_labels.npy'
             labels_csv_path = os.path.join(train_flags.output_test_features_path, labels_csv_name)
             np.save(labels_csv_path, labels)
 
@@ -224,5 +241,7 @@ def predict(gallery_flag):
 
 if __name__ == '__main__':
     train(retain_flag=False)
-    # predict(gallery_flag=False)
-    # predict(gallery_flag=True)
+    # generate_features(predict_flag=True,gallery_flag=True)
+    # generate_features(predict_flag=True,gallery_flag=False)
+    # generate_features(predict_flag=False,gallery_flag=True)
+    # generate_features(predict_flag=False,gallery_flag=False)
