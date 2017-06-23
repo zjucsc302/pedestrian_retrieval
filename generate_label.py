@@ -187,6 +187,14 @@ def generate_path_label_csv(path_csv, image_path_list, label=None):
                 output.write("\n")
 
 
+def generate_name_np(path_np, image_path_list):
+    name_np = np.zeros(len(image_path_list), dtype=np.int32)
+    for i in range(len(image_path_list)):
+        name_np[i] = (image_path_list[i].split('/')[-1].split('.')[0])
+    with open(path_np, "wb") as f:
+        pickle.dump(name_np, f)
+
+
 def dict2array(dict):
     array = []
     for key in dict:
@@ -241,3 +249,6 @@ if __name__ == '__main__':
     generate_path_label_csv('data/predict_gallery.csv', gallery_predict)
     print('prob_predict: ' + str(len(prob_predict)))
     print('gallery_predict: ' + str(len(gallery_predict)))
+    # generate predict name np
+    generate_name_np('data/predict_probe_name.pkl',prob_predict)
+    generate_name_np('data/predict_gallery_name.pkl', gallery_predict)
