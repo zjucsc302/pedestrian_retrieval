@@ -6,6 +6,7 @@ import os, sys
 import random
 from sklearn.model_selection import train_test_split
 from cmc import *
+import cPickle as pickle
 
 
 def get_dict_ids_images():
@@ -82,7 +83,7 @@ def generate_gallery(img_dict, n):
             img = random.choice(imgs)
             imgs.pop(imgs.index(img))
             probe.append(img)
-        plabels.append(int(id))
+            plabels.append(int(id))
         # generate gallery
         for img in imgs:
             glabels.append(int(id))
@@ -120,7 +121,7 @@ def get_animal_image():
     pos_image = random.sample(pos_list,1)[0]
     pos_list.append(ref_image)
     return pos_image
-    
+
 def get_triplet_pair_test():
     dataset_triplet_pair = []
     for key_id, value_images_list in train_eval.iteritems():
@@ -179,12 +180,20 @@ def generate_path_label_csv(path_csv, image_path_list, label=None):
     with open(path_csv, 'w') as output:
         if label is None:
             for i in range(len(image_path_list)):
-                output.write("%s,%s" % (image_path_list[i], -1))
+                output.write("%s,%s" % (image_path_list[i], i))
                 output.write("\n")
         else:
             for i in range(len(image_path_list)):
                 output.write("%s,%s" % (image_path_list[i], label[i]))
                 output.write("\n")
+
+
+def generate_name_np(path_np, image_path_list):
+    name_np = np.zeros(len(image_path_list), dtype=np.int32)
+    for i in range(len(image_path_list)):
+        name_np[i] = (image_path_list[i].split('/')[-1].split('.')[0])
+    with open(path_np, "wb") as f:
+        pickle.dump(name_np, f)
 
 
 def dict2array(dict):
@@ -209,7 +218,15 @@ def array2dict(array):
 
 if __name__ == '__main__':
     # import train and valid data
-    id_path = get_dict_ids_images()
+    id_path = {}
+    pfile = 'data/id_path.pkl'
+    if os.path.exists(pfile):
+        with open(pfile, "rb") as f:
+            id_path = pickle.load(f)
+    else:
+        id_path = get_dict_ids_images()
+        with open(pfile, "wb") as f:
+            pickle.dump(id_path, f)
     # split train and valid date
     id_path_array = dict2array(id_path)
     X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.15, random_state=1)
@@ -223,11 +240,6 @@ if __name__ == '__main__':
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate valid csv
     probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
-    # valid can be divided by base_number
-    base_number = 10
-    probe_valid, gallery_valid, plabels_valid, glabels_valid = map(lambda x: x[:len(x) - len(x) % base_number],
-                                                                   [probe_valid, gallery_valid, plabels_valid,
-                                                                    glabels_valid])
     generate_path_label_csv('data/valid_probe.csv', probe_valid, plabels_valid)
     generate_path_label_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
     print('probe_valid: ' + str(len(probe_valid)))
@@ -238,3 +250,6 @@ if __name__ == '__main__':
     generate_path_label_csv('data/predict_gallery.csv', gallery_predict)
     print('prob_predict: ' + str(len(prob_predict)))
     print('gallery_predict: ' + str(len(gallery_predict)))
+    # generate predict name np
+    generate_name_np('data/predict_probe_name.pkl', prob_predict)
+    generate_name_np('data/predict_gallery_name.pkl', gallery_predict)
