@@ -216,14 +216,16 @@ def array2dict(array):
     return dict
 
 
-if __name__ == '__main__':
+def generate_path_label():
+    print('generate_path_label()')
     # import train and valid data
-    id_path = {}
     pfile = 'data/id_path.pkl'
     if os.path.exists(pfile):
+        print('id_path.pkl exist, load from id_path.pkl')
         with open(pfile, "rb") as f:
             id_path = pickle.load(f)
     else:
+        print('create id_path from vali.xml')
         id_path = get_dict_ids_images()
         with open(pfile, "wb") as f:
             pickle.dump(id_path, f)
@@ -234,10 +236,16 @@ if __name__ == '__main__':
     X_valid = array2dict(X_valid_array)
     print('train id: ' + str(len(X_train)))
     print('valid id: ' + str(len(X_valid)))
-    # generate train csv
+    # generate train_triplet_pair csv
     dataset_triplet_pair = get_triplet_pair(X_train)
-    generate_train_eval(dataset_triplet_pair, 'data/train.csv')
+    generate_train_eval(dataset_triplet_pair, 'data/train_triplet_pair.csv')
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
+    # generate train_1000 csv
+    probe_train, gallery_train, plabels_train, glabels_train = generate_gallery(X_train, 1000)
+    generate_path_label_csv('data/train_1000_probe.csv', probe_train, plabels_train)
+    generate_path_label_csv('data/train_1000_gallery.csv', gallery_train, glabels_train)
+    print('probe_train_1000: ' + str(len(probe_train)))
+    print('gallery_train_1000: ' + str(len(gallery_train)))
     # generate valid csv
     probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
     generate_path_label_csv('data/valid_probe.csv', probe_valid, plabels_valid)
@@ -253,3 +261,7 @@ if __name__ == '__main__':
     # generate predict name np
     generate_name_np('data/predict_probe_name.pkl', prob_predict)
     generate_name_np('data/predict_gallery_name.pkl', gallery_predict)
+
+
+if __name__ == '__main__':
+    generate_path_label()
