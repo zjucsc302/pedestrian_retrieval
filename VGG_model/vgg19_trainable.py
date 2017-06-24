@@ -177,7 +177,7 @@ class Vgg19:
 
         basic_cost = tf.add(tf.subtract(dist_ref_to_pos, dist_ref_to_neg), distance_alfa)
 
-        cost = tf.reduce_mean(tf.maximum(basic_cost, 0.0), 0)
+        cost = tf.maximum(basic_cost, 0.0)
 
         tf.add_to_collection('losses', cost)
 

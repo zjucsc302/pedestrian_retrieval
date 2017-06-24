@@ -339,7 +339,6 @@ def generate_predict_xml():
         return
     with open('data/predict_gallery_name.pkl', "rb") as f:
         g_names = pickle.load(f)
-        print g_names[:10]
     with open('data/predict_probe_name.pkl', "rb") as f:
         p_names = pickle.load(f)
     print('start compute distance')

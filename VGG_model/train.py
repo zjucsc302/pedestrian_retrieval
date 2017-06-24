@@ -15,15 +15,14 @@ def _model_loss(vgg_class):
     # Compute the moving average of all losses
     with tf.variable_scope(tf.get_variable_scope()):
         vgg_class.calc_loss(vgg_class.fc7, train_flags.distance_alfa)
-    total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
+    losses = tf.add_n(tf.get_collection('losses'), name='total_loss')
 
     # Compute the moving average of total loss.
     loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
-    loss_averages_op = loss_averages.apply([total_loss])
+    loss_averages_op = loss_averages.apply([losses])
     with tf.control_dependencies([loss_averages_op]):
-        total_loss = tf.identity(total_loss)
-    tf.summary.scalar('loss', total_loss)
-    return total_loss
+        losses = tf.identity(losses)
+    return losses
 
 
 def train(retain_flag = True, start_step = 0):
@@ -53,7 +52,11 @@ def train(retain_flag = True, start_step = 0):
         with tf.variable_scope(tf.get_variable_scope()):
             vgg.build(input_batch, vgg.train_test_mode)
             # loss
-            loss = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0], dtype=tf.float32))
+            losses = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0], dtype=tf.float32))
+            loss_max = tf.reduce_max(losses)
+            loss_mean = tf.reduce_mean(losses)
+            tf.summary.scalar('loss_max', loss_max)
+            tf.summary.scalar('loss_mean', loss_mean)
 
         # Create an optimizer that performs gradient descent.
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -73,7 +76,7 @@ def train(retain_flag = True, start_step = 0):
         opt = tf.train.AdamOptimizer(lr)
 
         # grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
-        grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
+        grads = opt.compute_gradients(losses, var_list=vars_to_optimize)
         apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
         train_op = tf.group(apply_gradient_op)
 
@@ -100,7 +103,7 @@ def train(retain_flag = True, start_step = 0):
         print('start training')
         for step in range(start_step, train_flags.max_step):
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss], feed_dict={train_mode: True, gallery_mode: True})
+            _, loss_value = sess.run([train_op, loss_max], feed_dict={train_mode: True, gallery_mode: True})
             duration = time.time() - start_time
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
@@ -240,8 +243,8 @@ def generate_features(predict_flag, gallery_flag):
 
 
 if __name__ == '__main__':
-    # train(retain_flag=False, start_step=230001)
-    generate_features(predict_flag=True,gallery_flag=True)
-    generate_features(predict_flag=True,gallery_flag=False)
+    train(retain_flag=True, start_step=1)
+    # generate_features(predict_flag=True,gallery_flag=True)
+    # generate_features(predict_flag=True,gallery_flag=False)
     # generate_features(predict_flag=False,gallery_flag=True)
     # generate_features(predict_flag=False,gallery_flag=False)
