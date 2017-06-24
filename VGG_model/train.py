@@ -15,18 +15,18 @@ def _model_loss(vgg_class):
     # Compute the moving average of all losses
     with tf.variable_scope(tf.get_variable_scope()):
         vgg_class.calc_loss(vgg_class.fc7, train_flags.distance_alfa)
-    total_loss = tf.add_n(tf.get_collection('losses'), name='total_loss')
+    losses = tf.add_n(tf.get_collection('losses'), name='total_loss')
 
     # Compute the moving average of total loss.
     loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
-    loss_averages_op = loss_averages.apply([total_loss])
+    loss_averages_op = loss_averages.apply([losses])
     with tf.control_dependencies([loss_averages_op]):
-        total_loss = tf.identity(total_loss)
-    tf.summary.scalar('loss', total_loss)
-    return total_loss
+        losses = tf.identity(losses)
+    return losses
 
 
-def train(retain_flag = True):
+def train(retain_flag = True, start_step = 0):
+    print('train(%s)' % (retain_flag))
     # train model, generate valid features
     with tf.Graph().as_default():
 
@@ -52,7 +52,11 @@ def train(retain_flag = True):
         with tf.variable_scope(tf.get_variable_scope()):
             vgg.build(input_batch, vgg.train_test_mode)
             # loss
-            loss = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0], dtype=tf.float32))
+            losses = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0], dtype=tf.float32))
+            loss_max = tf.reduce_max(losses)
+            loss_mean = tf.reduce_mean(losses)
+            tf.summary.scalar('loss_max', loss_max)
+            tf.summary.scalar('loss_mean', loss_mean)
 
         # Create an optimizer that performs gradient descent.
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -64,7 +68,7 @@ def train(retain_flag = True):
                                         train_flags.learning_rate_decay_factor,
                                         staircase=True)
         vars_to_optimize = [v for v in tf.trainable_variables() if
-                            (v.name.startswith('fc') | v.name.startswith('conv'))]
+                            (v.name.startswith('fc') | v.name.startswith('conv4'))]
         print '\nvariables to optimize'
         for v in vars_to_optimize:
             print v.name, v.get_shape().as_list()
@@ -72,7 +76,7 @@ def train(retain_flag = True):
         opt = tf.train.AdamOptimizer(lr)
 
         # grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
-        grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
+        grads = opt.compute_gradients(losses, var_list=vars_to_optimize)
         apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
         train_op = tf.group(apply_gradient_op)
 
@@ -97,9 +101,9 @@ def train(retain_flag = True):
                 print('load checkpoint')
 
         print('start training')
-        for step in range(train_flags.max_step):
+        for step in range(start_step, train_flags.max_step):
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss], feed_dict={train_mode: True, gallery_mode: True})
+            _, loss_value = sess.run([train_op, loss_max], feed_dict={train_mode: True, gallery_mode: True})
             duration = time.time() - start_time
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
@@ -162,17 +166,37 @@ def train(retain_flag = True):
         sess.close()
 
 
-def predict(gallery_flag):
+def generate_features(predict_flag, gallery_flag):
+    print('generate_features(%s, %s)' % (predict_flag, gallery_flag))
     # generate predict features
     with tf.Graph().as_default():
         # build a VGG19 class object
         vgg = Vgg19(train_test_mode=tf.constant(False, tf.bool))
 
-        # define input data
-        input_path = train_flags.dataset_predict_gallery_csv_file_path if gallery_flag else train_flags.dataset_predict_probe_csv_file_path
-        predict_batch, predict_label = vgg.predict_batch_inputs(input_path, train_flags.test_batch_size)
+        # define parameter
+        if gallery_flag and predict_flag:
+            input_path = train_flags.dataset_predict_gallery_csv_file_path
+            features_num = train_flags.predict_gallery_num
+            features_csv_name = 'predict_gallery_features.npy'
+            labels_csv_name = 'predict_gallery_labels.npy'
+        elif gallery_flag and (not predict_flag):
+            input_path = train_flags.dataset_train_1000_gallery_csv_file_path
+            features_num = train_flags.train_1000_gallery_num
+            features_csv_name = 'train_1000_gallery_features.npy'
+            labels_csv_name = 'train_1000_gallery_labels.npy'
+        elif (not gallery_flag) and predict_flag:
+            input_path = train_flags.dataset_predict_probe_csv_file_path
+            features_num = train_flags.predict_probe_num
+            features_csv_name = 'predict_probe_features.npy'
+            labels_csv_name = 'predict_probe_labels.npy'
+        else:
+            input_path = train_flags.dataset_train_1000_probe_csv_file_path
+            features_num = train_flags.train_1000_probe_num
+            features_csv_name = 'train_1000_probe_features.npy'
+            labels_csv_name = 'train_1000_probe_labels.npy'
 
         # build model
+        predict_batch, predict_label = vgg.predict_batch_inputs(input_path, train_flags.test_batch_size)
         with tf.variable_scope(tf.get_variable_scope()):
             vgg.build(predict_batch, vgg.train_test_mode)
 
@@ -191,10 +215,8 @@ def predict(gallery_flag):
             coord = tf.train.Coordinator()
             threads = tf.train.start_queue_runners(sess=sess, coord=coord)
 
-            print('start predict')
-
+            print('start generate features')
             # get feature batch
-            features_num = train_flags.predict_gallery_num if gallery_flag else train_flags.predict_probe_num
             features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
             labels = np.zeros(features_num, dtype=float)
             batch_len = train_flags.test_batch_size
@@ -211,10 +233,8 @@ def predict(gallery_flag):
                 print('batch_index: ' + str(batch_index + batch_len) + '-' + str(batch_index + batch_len + end_len - 1))
 
             # save feature
-            features_csv_name = 'predict_gallery_features.npy' if gallery_flag else 'predict_probe_features.npy'
             features_csv_path = os.path.join(train_flags.output_test_features_path, features_csv_name)
             np.save(features_csv_path, features)
-            labels_csv_name = 'predict_gallery_labels.npy' if gallery_flag else 'predict_probe_labels.npy'
             labels_csv_path = os.path.join(train_flags.output_test_features_path, labels_csv_name)
             np.save(labels_csv_path, labels)
 
@@ -223,6 +243,8 @@ def predict(gallery_flag):
 
 
 if __name__ == '__main__':
-    train(retain_flag=False)
-    # predict(gallery_flag=False)
-    # predict(gallery_flag=True)
+    train(retain_flag=True, start_step=1)
+    # generate_features(predict_flag=True,gallery_flag=True)
+    # generate_features(predict_flag=True,gallery_flag=False)
+    # generate_features(predict_flag=False,gallery_flag=True)
+    # generate_features(predict_flag=False,gallery_flag=False)

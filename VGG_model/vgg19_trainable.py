@@ -10,14 +10,16 @@ VGG_MEAN = [103.939, 116.779, 123.68]
 # VGG_MEAN = [98.200, 98.805, 102.044]
 
 IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 224
+IMAGE_WIDTH = 112
 
 
 class Train_Flags():
     def __init__(self):
 
         self.current_file_path = os.path.abspath('.')
-        self.dataset_train_csv_file_path = os.path.abspath('../data/train.csv')
+        self.dataset_train_csv_file_path = os.path.abspath('../data/train_triplet_pair.csv')
+        self.dataset_train_1000_gallery_csv_file_path = os.path.abspath('../data/train_1000_gallery.csv')
+        self.dataset_train_1000_probe_csv_file_path = os.path.abspath('../data/train_1000_probe.csv')
         self.dataset_valid_gallery_csv_file_path = os.path.abspath('../data/valid_gallery.csv')
         self.dataset_valid_probe_csv_file_path = os.path.abspath('../data/valid_probe.csv')
         self.dataset_predict_gallery_csv_file_path = os.path.abspath('../data/predict_gallery.csv')
@@ -26,7 +28,7 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'model_0.4.ckpt'
+        self.checkpoint_name = 'model_224_112.ckpt'
 
         self.max_step = 1000000
         self.num_per_epoch = 10000
@@ -40,7 +42,10 @@ class Train_Flags():
         self.moving_average_decay = 0.999999
         self.distance_alfa = 0.2
 
-        # test_num should be divided by batch_size
+        with open(self.dataset_train_1000_gallery_csv_file_path, 'rb') as f:
+            self.train_1000_gallery_num = sum([1 for row in csv.reader(f)])
+        with open(self.dataset_train_1000_probe_csv_file_path, 'rb') as f:
+            self.train_1000_probe_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_valid_gallery_csv_file_path, 'rb') as f:
             self.valid_gallery_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_valid_probe_csv_file_path, 'rb') as f:
@@ -85,15 +90,15 @@ class Vgg19:
 
         # Convert RGB to BGR
         red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
-        assert red.get_shape().as_list()[1:] == [224, 224, 1]
-        assert green.get_shape().as_list()[1:] == [224, 224, 1]
-        assert blue.get_shape().as_list()[1:] == [224, 224, 1]
+        assert red.get_shape().as_list()[1:] == [224, 112, 1]
+        assert green.get_shape().as_list()[1:] == [224, 112, 1]
+        assert blue.get_shape().as_list()[1:] == [224, 112, 1]
         bgr = tf.concat(axis=3, values=[
             blue - VGG_MEAN[0],
             green - VGG_MEAN[1],
             red - VGG_MEAN[2],
         ])
-        assert bgr.get_shape().as_list()[1:] == [224, 224, 3]
+        assert bgr.get_shape().as_list()[1:] == [224, 112, 3]
 
         self.conv1_1 = self.conv_layer(bgr, 3, 64, "conv1_1")
         self.conv1_2 = self.conv_layer(self.conv1_1, 64, 64, "conv1_2")
@@ -116,7 +121,7 @@ class Vgg19:
         self.pool4 = self.max_pool(self.conv4_4, 'pool4')
 
         '''
-        
+
         self.conv5_1 = self.conv_layer(self.pool4, 512, 512, "conv5_1")
         self.conv5_2 = self.conv_layer(self.conv5_1, 512, 512, "conv5_2")
         self.conv5_3 = self.conv_layer(self.conv5_2, 512, 512, "conv5_3")
@@ -145,7 +150,7 @@ class Vgg19:
 
         '''
 
-        self.fc6 = self.fc_layer(self.pool4, 100352, 256, "fc6_new")
+        self.fc6 = self.fc_layer(self.pool4, 50176, 256, "fc6_new")
         self.relu6 = tf.nn.relu(self.fc6)
         self.relu6 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.relu6, self.dropout), lambda: self.relu6)
 
@@ -172,7 +177,7 @@ class Vgg19:
 
         basic_cost = tf.add(tf.subtract(dist_ref_to_pos, dist_ref_to_neg), distance_alfa)
 
-        cost = tf.reduce_mean(tf.maximum(basic_cost, 0.0), 0)
+        cost = tf.maximum(basic_cost, 0.0)
 
         tf.add_to_collection('losses', cost)
 
@@ -263,7 +268,6 @@ class Vgg19:
             tests = tf.train.batch(
                 [resized_test, test_image_label],
                 batch_size=batch_size,
-                num_threads=2,
                 capacity=1 + batch_size
             )
             return tests
