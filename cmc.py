@@ -8,6 +8,7 @@ import numpy.matlib as matlib
 import cPickle as pickle
 from xml.dom.minidom import Document
 import os
+import matplotlib.pyplot as plt
 
 def _cmc_core(D, G, P):
     m, n = D.shape
@@ -272,6 +273,7 @@ def train_1000_mAP():
 
 def valid_mAP():
     print('valid_mAP()')
+    min_step = 10000000
     max_step = 0
     for root, dirs, files in os.walk(os.path.abspath('./VGG_model/result/test_features')):
         for name in files:
@@ -279,16 +281,21 @@ def valid_mAP():
                 step = int(name.split('.')[0].split('-')[-1])
                 if step > max_step:
                     max_step = step
+                if step < min_step:
+                    min_step = step
+    map2_all = []
     # valid mAP
-    for step in range(5000, max_step + 1, 5000):
+    for step in range(min_step, max_step + 1, 5000):
         g = np.load('VGG_model/result/test_features/valid_gallery_features_step-%d.npy' % step)
         g_labels = np.load('VGG_model/result/test_features/valid_gallery_labels_step-%d.npy' % step)
         p = np.load('VGG_model/result/test_features/valid_probe_features_step-%d.npy' % step)
         p_labels = np.load('VGG_model/result/test_features/valid_probe_labels_step-%d.npy' % step)
         distmat = compute_distmat(g, p)
         map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
+        map2_all.append(map2)
         print('step: %d, map: %f, %f ' % (step, map1, map2))
-
+    plt.plot(range(min_step, max_step + 1, 5000), map2_all)
+    plt.show()
 
 def create_xml(pname, gnames):
     doc = Document()
@@ -311,7 +318,6 @@ def create_xml(pname, gnames):
         for gname in gnames[i]:
             gname_str += (str(gname).zfill(6) + ' ')
         gname_str = gname_str[:-1]
-        print gname_str
         item.appendChild(doc.createTextNode(gname_str))
         items.appendChild(item)
 
@@ -323,8 +329,17 @@ def generate_predict_xml():
     print('generate_predict_xml()')
     g = np.load('VGG_model/result/test_features/predict_gallery_features.npy')
     p = np.load('VGG_model/result/test_features/predict_probe_features.npy')
+    g_label = np.load('VGG_model/result/test_features/predict_gallery_labels.npy')
+    p_label = np.load('VGG_model/result/test_features/predict_probe_labels.npy')
+    if False in (g_label == np.array(range(58061))):
+        print('g_label order error')
+        return
+    if False in (p_label == np.array(range(4480))):
+        print('p_label order error')
+        return
     with open('data/predict_gallery_name.pkl', "rb") as f:
         g_names = pickle.load(f)
+        print g_names[:10]
     with open('data/predict_probe_name.pkl', "rb") as f:
         p_names = pickle.load(f)
     print('start compute distance')
