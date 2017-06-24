@@ -26,8 +26,8 @@ def _model_loss(vgg_class):
     return total_loss
 
 
-def train(retain_flag = True):
-    print('train()')
+def train(retain_flag = True, start_step = 0):
+    print('train(%s)' % (retain_flag))
     # train model, generate valid features
     with tf.Graph().as_default():
 
@@ -98,7 +98,7 @@ def train(retain_flag = True):
                 print('load checkpoint')
 
         print('start training')
-        for step in range(train_flags.max_step):
+        for step in range(start_step, train_flags.max_step):
             start_time = time.time()
             _, loss_value = sess.run([train_op, loss], feed_dict={train_mode: True, gallery_mode: True})
             duration = time.time() - start_time
@@ -164,7 +164,7 @@ def train(retain_flag = True):
 
 
 def generate_features(predict_flag, gallery_flag):
-    print('generate_features()')
+    print('generate_features(%s, %s)' % (predict_flag, gallery_flag))
     # generate predict features
     with tf.Graph().as_default():
         # build a VGG19 class object
@@ -240,8 +240,8 @@ def generate_features(predict_flag, gallery_flag):
 
 
 if __name__ == '__main__':
-    train(retain_flag=False)
-    # generate_features(predict_flag=True,gallery_flag=True)
-    # generate_features(predict_flag=True,gallery_flag=False)
+    # train(retain_flag=False, start_step=230001)
+    generate_features(predict_flag=True,gallery_flag=True)
+    generate_features(predict_flag=True,gallery_flag=False)
     # generate_features(predict_flag=False,gallery_flag=True)
     # generate_features(predict_flag=False,gallery_flag=False)
