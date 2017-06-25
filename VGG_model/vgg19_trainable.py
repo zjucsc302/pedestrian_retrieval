@@ -28,7 +28,7 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'model_224_112.ckpt'
+        self.checkpoint_name = 'model_trip_improve.ckpt'
 
         self.max_step = 1000000
         self.num_per_epoch = 10000
@@ -37,10 +37,12 @@ class Train_Flags():
         self.test_batch_size = 30
 
         self.output_feature_dim = 100
-        self.initial_learning_rate = 0.001
+        self.initial_learning_rate = 0.0001
         self.learning_rate_decay_factor = 0.96
         self.moving_average_decay = 0.999999
-        self.distance_alfa = 0.2
+        self.tau1 = -1.0
+        self.tau2 = 0.01
+        self.beta = 0.002
 
         with open(self.dataset_train_1000_gallery_csv_file_path, 'rb') as f:
             self.train_1000_gallery_num = sum([1 for row in csv.reader(f)])
@@ -158,9 +160,31 @@ class Vgg19:
 
         self.data_dict = None
 
-    # calculate function: the triplet batch output loss
-    def calc_loss(self, logits, distance_alfa):
+    # # calculate function: the triplet batch output loss
+    # def calc_loss(self, logits, distance_alfa):
+    #
+    #     split_refs, split_poss, split_negs = tf.split(logits, num_or_size_splits=3, axis=0)
+    #
+    #     # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
+    #     float_split_refs = tf.cast(split_refs, dtype=tf.float32)
+    #     float_split_poss = tf.cast(split_poss, dtype=tf.float32)
+    #     float_split_negs = tf.cast(split_negs, dtype=tf.float32)
+    #
+    #     norm_split_refs = tf.nn.l2_normalize(float_split_refs, dim=1)
+    #     norm_split_poss = tf.nn.l2_normalize(float_split_poss, dim=1)
+    #     norm_split_negs = tf.nn.l2_normalize(float_split_negs, dim=1)
+    #
+    #     dist_ref_to_pos = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_poss)), 1)
+    #     dist_ref_to_neg = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_negs)), 1)
+    #
+    #     basic_cost = tf.add(tf.subtract(dist_ref_to_pos, dist_ref_to_neg), distance_alfa)
+    #
+    #     cost = tf.maximum(basic_cost, 0.0)
+    #
+    #     tf.add_to_collection('losses', cost)
 
+    # calculate function: the triplet batch output loss
+    def calc_loss(self, logits, tau1, tau2, beta):
         split_refs, split_poss, split_negs = tf.split(logits, num_or_size_splits=3, axis=0)
 
         # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
@@ -168,18 +192,16 @@ class Vgg19:
         float_split_poss = tf.cast(split_poss, dtype=tf.float32)
         float_split_negs = tf.cast(split_negs, dtype=tf.float32)
 
-        norm_split_refs = tf.nn.l2_normalize(float_split_refs, dim=1)
-        norm_split_poss = tf.nn.l2_normalize(float_split_poss, dim=1)
-        norm_split_negs = tf.nn.l2_normalize(float_split_negs, dim=1)
+        dist_ref_to_pos = tf.reduce_sum(tf.square(float_split_refs - float_split_poss), 1)
+        dist_ref_to_neg = tf.reduce_sum(tf.square(float_split_refs - float_split_negs), 1)
 
-        dist_ref_to_pos = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_poss)), 1)
-        dist_ref_to_neg = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_negs)), 1)
+        inter_const = tf.maximum(dist_ref_to_pos - dist_ref_to_neg, tau1)
+        intra_const = beta * tf.maximum(dist_ref_to_pos - tau2, 0.0)
+        costs = inter_const + intra_const
+        tf.summary.scalar('inter_const', tf.reduce_mean(inter_const))
+        tf.summary.scalar('intra_const', tf.reduce_mean(intra_const))
 
-        basic_cost = tf.add(tf.subtract(dist_ref_to_pos, dist_ref_to_neg), distance_alfa)
-
-        cost = tf.maximum(basic_cost, 0.0)
-
-        tf.add_to_collection('losses', cost)
+        tf.add_to_collection('losses', costs)
 
     def train_batch_inputs(self, dataset_csv_file_path, batch_size):
 
@@ -190,20 +212,20 @@ class Vgg19:
             filename_queue = tf.train.string_input_producer([dataset_csv_file_path], shuffle=False)
             reader = tf.TextLineReader()
             _, serialized_example = reader.read(filename_queue)
-            ref_image_path, ref_pos_image_path, ref_neg_image_path = tf.decode_csv(
-                serialized_example, [["ref_image"], ["ref_pos_image"], ["ref_neg_image"]])
+            ref_image_path, pos_image_path, neg_image_path, order = tf.decode_csv(
+                serialized_example, [["ref_image_path"], ["pos_image_path"], ["neg_image_path"], ["order"]])
 
             # input
             ref_image = tf.read_file(ref_image_path)
             ref = tf.image.decode_jpeg(ref_image, channels=3)
             ref = tf.cast(ref, dtype=tf.int16)
 
-            ref_pos_image = tf.read_file(ref_pos_image_path)
-            pos = tf.image.decode_jpeg(ref_pos_image, channels=3)
+            pos_image = tf.read_file(pos_image_path)
+            pos = tf.image.decode_jpeg(pos_image, channels=3)
             pos = tf.cast(pos, dtype=tf.int16)
 
-            ref_neg_image = tf.read_file(ref_neg_image_path)
-            neg = tf.image.decode_jpeg(ref_neg_image, channels=3)
+            neg_image = tf.read_file(neg_image_path)
+            neg = tf.image.decode_jpeg(neg_image, channels=3)
             neg = tf.cast(neg, dtype=tf.int16)
 
             resized_ref = tf.image.resize_images(ref, (IMAGE_HEIGHT, IMAGE_WIDTH))
@@ -211,15 +233,15 @@ class Vgg19:
             resized_neg = tf.image.resize_images(neg, (IMAGE_HEIGHT, IMAGE_WIDTH))
 
             # generate batch
-            refs, poss, negs = tf.train.batch(
-                [resized_ref, resized_pos, resized_neg],
+            trains = tf.train.batch(
+                [resized_ref, resized_pos, resized_neg, order],
                 batch_size=batch_size,
                 num_threads=2,
                 capacity=1 + 3 * batch_size
             )
-            return refs, poss, negs
+            return trains
 
-    def valid_batch_inputs(self, dataset_test_csv_file_path, batch_size):
+    def test_batch_inputs(self, dataset_test_csv_file_path, batch_size):
 
         with tf.name_scope('valid_batch_processing'):
             if (os.path.isfile(dataset_test_csv_file_path) != True):
@@ -228,7 +250,9 @@ class Vgg19:
             filename_queue = tf.train.string_input_producer([dataset_test_csv_file_path], shuffle=False)
             reader = tf.TextLineReader()
             _, serialized_example = reader.read(filename_queue)
-            test_image_path, test_image_label = tf.decode_csv(serialized_example, [["test_image"], ["label"]])
+            test_image_path, test_image_label, order = tf.decode_csv(serialized_example,
+                                                                     [["test_image_path"], ["test_image_label"],
+                                                                      ["order"]])
 
             # input
             test_file = tf.read_file(test_image_path)
@@ -239,34 +263,7 @@ class Vgg19:
 
             # generate batch
             tests = tf.train.batch(
-                [resized_test, test_image_label],
-                batch_size=batch_size,
-                num_threads=2,
-                capacity=1 + batch_size
-            )
-            return tests
-
-    def predict_batch_inputs(self, dataset_test_csv_file_path, batch_size):
-
-        with tf.name_scope('predict_batch_processing'):
-            if (os.path.isfile(dataset_test_csv_file_path) != True):
-                raise ValueError('No data files found for this test dataset')
-
-            filename_queue = tf.train.string_input_producer([dataset_test_csv_file_path], shuffle=False)
-            reader = tf.TextLineReader()
-            _, serialized_example = reader.read(filename_queue)
-            test_image_path, test_image_label = tf.decode_csv(serialized_example, [["test_image"], ["label"]])
-
-            # input
-            test_file = tf.read_file(test_image_path)
-            test_image = tf.image.decode_jpeg(test_file, channels=3)
-            test_image = tf.cast(test_image, dtype=tf.int16)
-
-            resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH))
-
-            # generate batch
-            tests = tf.train.batch(
-                [resized_test, test_image_label],
+                [resized_test, test_image_label, order],
                 batch_size=batch_size,
                 capacity=1 + batch_size
             )

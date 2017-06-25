@@ -25,26 +25,33 @@ run `generaty_gallery()` in cmc.py to generate gallery, probe, along with their 
 checkpoint:model
 model: vgg19, delete conv5,fc6,fc7,fc8, add fc6_new, fc7_new(100),  fine tuning conv4,fc6,fc7, resize image to 224*224, change VGG_MEAN
 train: AdamOptimizer, initial_learning_rate = 0.001, self.learning_rate_decay_factor = 0.9
-parameter: distance_alfa = 0.2
+loss: base triplet, distance_alfa = 0.2
 result: 110000 step, best 0.29
 
 2-6.22
 checkpoint:model_0.4
 model: vgg19, delete conv5,fc6,fc7,fc8, add fc6_new, fc7_new(100),  fine tuning all, resize image to 224*224
 train: AdamOptimizer, initial_learning_rate = 0.001, self.learning_rate_decay_factor = 0.96
-parameter: distance_alfa = 0.2
+loss: base triplet, distance_alfa = 0.2
 result: 65000 step, best 0.2
 
 3-6.23
 checkpoint:model_224_112
 model: vgg19, delete conv5,fc6,fc7,fc8, add fc6_new, fc7_new(100),  fine tuning conv4,fc6,fc7, resize image to 224*112
 train: AdamOptimizer, initial_learning_rate = 0.001, self.learning_rate_decay_factor = 0.96
-parameter: distance_alfa = 0.2
+loss: base triplet, distance_alfa = 0.2
 result: 230000 step, best 0.3
 
 4-6.24
 checkpoint:model_loss_split
 model: vgg19, delete conv5,fc6,fc7,fc8, add fc6_new, fc7_new(100),  fine tuning conv4,fc6,fc7, resize image to 224*112, split loss in a batch
 train: AdamOptimizer, initial_learning_rate = 0.001, self.learning_rate_decay_factor = 0.96
-parameter: distance_alfa = 0.2
+loss: base triplet, distance_alfa = 0.2
+result: 350000 step, best 0.3
+
+4-6.25
+checkpoint:model_trip_improve
+model: vgg19, delete conv5,fc6,fc7,fc8, add fc6_new, fc7_new(100),  fine tuning conv4,fc6,fc7, resize image to 224*112, split loss in a batch
+train: AdamOptimizer, initial_learning_rate = 0.0001, self.learning_rate_decay_factor = 0.96
+loss: improved triplet, tau1 = -1.0, self.tau2 = 0.01, self.beta = 0.002
 result:

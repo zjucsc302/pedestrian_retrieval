@@ -86,8 +86,8 @@ def generate_gallery(img_dict, n):
             plabels.append(int(id))
         # generate gallery
         for img in imgs:
-            glabels.append(int(id))
             gallery.append(img)
+            glabels.append(int(id))
     return probe, gallery, np.array(plabels).astype(np.int32), np.array(glabels).astype(np.int32)
 
 
@@ -148,10 +148,12 @@ def get_triplet_pair(train_eval):
 
 
 def generate_train_eval(dataset_triplet_pair, csv_path):
+    order = 0
     with open(csv_path, 'w') as output:
         for (ref_image, ref_pos_image, ref_neg_image) in dataset_triplet_pair:
-            output.write("%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image))
+            output.write("%s,%s,%s,%s" % (ref_image, ref_pos_image, ref_neg_image, order))
             output.write("\n")
+            order += 1
 
 
 def generate_test(gallery_probe, glabels_plabels, test_batch):
@@ -176,15 +178,15 @@ def generate_path_csv(image_path_list, path_csv):
             output.write("\n")
 
 
-def generate_path_label_csv(path_csv, image_path_list, label=None):
+def generate_path_label_order_csv(path_csv, image_path_list, label=None):
     with open(path_csv, 'w') as output:
         if label is None:
             for i in range(len(image_path_list)):
-                output.write("%s,%s" % (image_path_list[i], i))
+                output.write("%s,%s,%s" % (image_path_list[i], -1, i))
                 output.write("\n")
         else:
             for i in range(len(image_path_list)):
-                output.write("%s,%s" % (image_path_list[i], label[i]))
+                output.write("%s,%s,%s" % (image_path_list[i], label[i], i))
                 output.write("\n")
 
 
@@ -194,6 +196,14 @@ def generate_name_np(path_np, image_path_list):
         name_np[i] = (image_path_list[i].split('/')[-1].split('.')[0])
     with open(path_np, "wb") as f:
         pickle.dump(name_np, f)
+
+
+def generate_name_order(path_csv, image_path_list):
+    with open(path_csv, 'w') as output:
+        for i in range(len(image_path_list)):
+            name = image_path_list[i].split('/')[-1].split('.')[0]
+            output.write("%s,%s" % (name, i))
+            output.write("\n")
 
 
 def dict2array(dict):
@@ -242,25 +252,25 @@ def generate_path_label():
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate train_1000 csv
     probe_train, gallery_train, plabels_train, glabels_train = generate_gallery(X_train, 1000)
-    generate_path_label_csv('data/train_1000_probe.csv', probe_train, plabels_train)
-    generate_path_label_csv('data/train_1000_gallery.csv', gallery_train, glabels_train)
+    generate_path_label_order_csv('data/train_1000_probe.csv', probe_train, plabels_train)
+    generate_path_label_order_csv('data/train_1000_gallery.csv', gallery_train, glabels_train)
     print('probe_train_1000: ' + str(len(probe_train)))
     print('gallery_train_1000: ' + str(len(gallery_train)))
     # generate valid csv
     probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
-    generate_path_label_csv('data/valid_probe.csv', probe_valid, plabels_valid)
-    generate_path_label_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
+    generate_path_label_order_csv('data/valid_probe.csv', probe_valid, plabels_valid)
+    generate_path_label_order_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
     print('probe_valid: ' + str(len(probe_valid)))
     print('gallery_valid: ' + str(len(gallery_valid)))
     # generate predict csv
     gallery_predict, prob_predict = generate_predict_path()
-    generate_path_label_csv('data/predict_probe.csv', prob_predict)
-    generate_path_label_csv('data/predict_gallery.csv', gallery_predict)
+    generate_path_label_order_csv('data/predict_probe.csv', prob_predict)
+    generate_path_label_order_csv('data/predict_gallery.csv', gallery_predict)
     print('prob_predict: ' + str(len(prob_predict)))
     print('gallery_predict: ' + str(len(gallery_predict)))
-    # generate predict name np
-    generate_name_np('data/predict_probe_name.pkl', prob_predict)
-    generate_name_np('data/predict_gallery_name.pkl', gallery_predict)
+    # generate predict name csv
+    generate_name_order('data/predict_probe_name.csv', prob_predict)
+    generate_name_order('data/predict_gallery_name.csv', gallery_predict)
 
 
 if __name__ == '__main__':
