@@ -259,21 +259,33 @@ def mAP(distmat, glabels=None, plabels=None, top_n=None, n_repeat=10):
     return ret1 / n_repeat, ret2
 
 
-def train_1000_mAP():
+def normalize(nparray):
+    # nparray: number * dim
+    nparray = np.transpose(nparray)
+    npsum = np.sum(nparray * nparray, axis=0)
+    npsum[np.isnan(npsum)] = 0.0001
+    nparray = nparray / np.sqrt(npsum)
+    nparray = np.transpose(nparray)
+    return nparray
+
+def train_1000_mAP(normalize_flag=False):
     print('train_1000_mAP()')
     # valid mAP
     g = np.load('VGG_model/result/test_features/train_1000_gallery_features.npy')
     g_labels = np.load('VGG_model/result/test_features/train_1000_gallery_labels.npy')
     p = np.load('VGG_model/result/test_features/train_1000_probe_features.npy')
     p_labels = np.load('VGG_model/result/test_features/train_1000_probe_labels.npy')
+    if normalize_flag:
+        g = normalize(g)
+        p = normalize(p)
     distmat = compute_distmat(g, p)
     map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
     print('train_1000 map: %f, %f ' % (map1, map2))
 
 
-def valid_mAP():
+def valid_mAP(normalize_flag=False):
     print('valid_mAP()')
-    min_step = 10000000
+    min_step = 100000000
     max_step = 0
     for root, dirs, files in os.walk(os.path.abspath('./VGG_model/result/test_features')):
         for name in files:
@@ -287,9 +299,13 @@ def valid_mAP():
     # valid mAP
     for step in range(min_step, max_step + 1, 5000):
         g = np.load('VGG_model/result/test_features/valid_gallery_features_step-%d.npy' % step)
+        print('g_feature abs mean : %s' % (np.mean(np.abs(g))))
         g_labels = np.load('VGG_model/result/test_features/valid_gallery_labels_step-%d.npy' % step)
         p = np.load('VGG_model/result/test_features/valid_probe_features_step-%d.npy' % step)
         p_labels = np.load('VGG_model/result/test_features/valid_probe_labels_step-%d.npy' % step)
+        if normalize_flag:
+            g = normalize(g)
+            p = normalize(p)
         distmat = compute_distmat(g, p)
         map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
         map2_all.append(map2)
@@ -325,22 +341,45 @@ def create_xml(pname, gnames):
     doc.writexml(fp, addindent='  ', newl='\n')
 
 
-def generate_predict_xml():
+def generate_predict_xml(normalize_flag=False):
     print('generate_predict_xml()')
     g = np.load('VGG_model/result/test_features/predict_gallery_features.npy')
     p = np.load('VGG_model/result/test_features/predict_probe_features.npy')
-    g_label = np.load('VGG_model/result/test_features/predict_gallery_labels.npy')
-    p_label = np.load('VGG_model/result/test_features/predict_probe_labels.npy')
-    if False in (g_label == np.array(range(58061))):
-        print('g_label order error')
+    g_order = np.load('VGG_model/result/test_features/predict_gallery_orders.npy')
+    p_order = np.load('VGG_model/result/test_features/predict_probe_orders.npy')
+    if normalize_flag:
+        g = normalize(g)
+        p = normalize(p)
+    if False in (g_order == np.array(range(58061))):
+        print('g_order error')
         return
-    if False in (p_label == np.array(range(4480))):
-        print('p_label order error')
+    if False in (p_order == np.array(range(4480))):
+        print('p_order error')
         return
-    with open('data/predict_gallery_name.pkl', "rb") as f:
-        g_names = pickle.load(f)
-    with open('data/predict_probe_name.pkl', "rb") as f:
-        p_names = pickle.load(f)
+    g_names_list = []
+    g_names_order_list = []
+    with open('data/predict_gallery_name.csv', "r") as f:
+        for name_order in f.readlines():
+            name_order = name_order.strip('\n')
+            g_names_list.append(int(name_order.split(',')[0]))
+            g_names_order_list.append(float(name_order.split(',')[1]))
+    g_names = np.array(g_names_list)
+    g_names_order = np.array(g_names_order_list)
+    p_names_list = []
+    p_names_order_list = []
+    with open('data/predict_probe_name.csv', "r") as f:
+        for name_order in f.readlines():
+            name_order = name_order.strip('\n')
+            p_names_list.append(int(name_order.split(',')[0]))
+            p_names_order_list.append(float(name_order.split(',')[1]))
+    p_names = np.array(p_names_list)
+    p_names_order = np.array(p_names_order_list)
+    if False in (g_names_order == np.array(range(58061))):
+        print('g_names_order error')
+        return
+    if False in (p_names_order == np.array(range(4480))):
+        print('p_names_order error')
+        return
     print('start compute distance')
     distmat = compute_distmat(g, p)
     print('start sort')
@@ -350,9 +389,9 @@ def generate_predict_xml():
 
 
 if __name__ == '__main__':
-    # train_1000_mAP()
-    # valid_mAP()
-    generate_predict_xml()
+    # train_1000_mAP(normalize_flag=False)
+    valid_mAP(normalize_flag=False)
+    # generate_predict_xml(normalize_flag=False)
     # have to
     # 1. delete xml's first line(<?xml version="1.0"?>)
     # 2. delete last line(nothing in last line)
