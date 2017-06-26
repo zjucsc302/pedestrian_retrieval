@@ -106,6 +106,8 @@ def train(retain_flag=True, start_step=0):
         for step in range(start_step, train_flags.max_step):
             start_time = time.time()
             _, loss_value = sess.run([train_op, loss_mean], feed_dict={train_mode: True, gallery_mode: True})
+            # _, loss_value, feature = sess.run([train_op, loss_mean, vgg.output], feed_dict={train_mode: True, gallery_mode: True})
+            # print('feature abs mean: %s' % (np.mean(np.abs(feature))))
             duration = time.time() - start_time
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 

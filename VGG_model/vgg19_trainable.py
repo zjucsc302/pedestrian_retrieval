@@ -28,7 +28,7 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'model_trip_improve.ckpt'
+        self.checkpoint_name = 'model_trip_improve_1.ckpt'
 
         self.max_step = 1000000
         self.num_per_epoch = 10000
@@ -37,10 +37,10 @@ class Train_Flags():
         self.test_batch_size = 30
 
         self.output_feature_dim = 100
-        self.initial_learning_rate = 0.0001
-        self.learning_rate_decay_factor = 0.96
+        self.initial_learning_rate = 0.00001
+        self.learning_rate_decay_factor = 0.9
         self.moving_average_decay = 0.999999
-        self.tau1 = -1.0
+        self.tau1 = 0.4
         self.tau2 = 0.01
         self.beta = 0.002
 
@@ -158,6 +158,12 @@ class Vgg19:
 
         self.fc7 = self.fc_layer(self.relu6, 256, 100, "fc7_new")
 
+        # l2_normalize
+        # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
+        # self.output = tf.cast(self.fc7, dtype=tf.float32)
+        # self.output = tf.nn.l2_normalize(self.output, dim=1)
+        self.output = self.fc7
+
         self.data_dict = None
 
     # # calculate function: the triplet batch output loss
@@ -185,23 +191,27 @@ class Vgg19:
 
     # calculate function: the triplet batch output loss
     def calc_loss(self, logits, tau1, tau2, beta):
+        # # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
+        logits = tf.cast(logits, dtype=tf.float32)
+        logits = tf.nn.l2_normalize(logits, dim=1)
+
         split_refs, split_poss, split_negs = tf.split(logits, num_or_size_splits=3, axis=0)
 
-        # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
-        float_split_refs = tf.cast(split_refs, dtype=tf.float32)
-        float_split_poss = tf.cast(split_poss, dtype=tf.float32)
-        float_split_negs = tf.cast(split_negs, dtype=tf.float32)
+        dist_ref_to_pos = tf.norm(split_refs - split_poss, 2, 1)
+        dist_ref_to_neg = tf.norm(split_refs - split_negs, 2, 1)
 
-        dist_ref_to_pos = tf.reduce_sum(tf.square(float_split_refs - float_split_poss), 1)
-        dist_ref_to_neg = tf.reduce_sum(tf.square(float_split_refs - float_split_negs), 1)
-
-        inter_const = tf.maximum(dist_ref_to_pos - dist_ref_to_neg, tau1)
-        intra_const = beta * tf.maximum(dist_ref_to_pos - tau2, 0.0)
-        costs = inter_const + intra_const
-        tf.summary.scalar('inter_const', tf.reduce_mean(inter_const))
-        tf.summary.scalar('intra_const', tf.reduce_mean(intra_const))
-
+        inter_const = tf.maximum(dist_ref_to_pos - dist_ref_to_neg + tau1, 0.0)
+        intra_const = tf.maximum(dist_ref_to_pos - tau2, 0.0)
+        costs = inter_const + beta * intra_const
         tf.add_to_collection('losses', costs)
+
+        tf.summary.scalar('inter_const_mean', tf.reduce_mean(inter_const))
+        tf.summary.scalar('intra_const_mean', tf.reduce_mean(intra_const))
+        tf.summary.scalar('inter_const_max', tf.reduce_max(inter_const))
+        tf.summary.scalar('intra_const_max', tf.reduce_max(intra_const))
+        accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
+        tf.summary.scalar('accuracy', accuracy)
+
 
     def train_batch_inputs(self, dataset_csv_file_path, batch_size):
 
