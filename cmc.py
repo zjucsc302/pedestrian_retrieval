@@ -259,19 +259,31 @@ def mAP(distmat, glabels=None, plabels=None, top_n=None, n_repeat=10):
     return ret1 / n_repeat, ret2
 
 
-def train_1000_mAP():
+def normalize(nparray):
+    # nparray: number * dim
+    nparray = np.transpose(nparray)
+    npsum = np.sum(nparray * nparray, axis=0)
+    npsum[np.isnan(npsum)] = 0.0001
+    nparray = nparray / np.sqrt(npsum)
+    nparray = np.transpose(nparray)
+    return nparray
+
+def train_1000_mAP(normalize_flag=False):
     print('train_1000_mAP()')
     # valid mAP
     g = np.load('VGG_model/result/test_features/train_1000_gallery_features.npy')
     g_labels = np.load('VGG_model/result/test_features/train_1000_gallery_labels.npy')
     p = np.load('VGG_model/result/test_features/train_1000_probe_features.npy')
     p_labels = np.load('VGG_model/result/test_features/train_1000_probe_labels.npy')
+    if normalize_flag:
+        g = normalize(g)
+        p = normalize(p)
     distmat = compute_distmat(g, p)
     map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
     print('train_1000 map: %f, %f ' % (map1, map2))
 
 
-def valid_mAP():
+def valid_mAP(normalize_flag=False):
     print('valid_mAP()')
     min_step = 100000000
     max_step = 0
@@ -287,9 +299,13 @@ def valid_mAP():
     # valid mAP
     for step in range(min_step, max_step + 1, 5000):
         g = np.load('VGG_model/result/test_features/valid_gallery_features_step-%d.npy' % step)
+        print('g_feature abs mean : %s' % (np.mean(np.abs(g))))
         g_labels = np.load('VGG_model/result/test_features/valid_gallery_labels_step-%d.npy' % step)
         p = np.load('VGG_model/result/test_features/valid_probe_features_step-%d.npy' % step)
         p_labels = np.load('VGG_model/result/test_features/valid_probe_labels_step-%d.npy' % step)
+        if normalize_flag:
+            g = normalize(g)
+            p = normalize(p)
         distmat = compute_distmat(g, p)
         map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
         map2_all.append(map2)
@@ -325,12 +341,15 @@ def create_xml(pname, gnames):
     doc.writexml(fp, addindent='  ', newl='\n')
 
 
-def generate_predict_xml():
+def generate_predict_xml(normalize_flag=False):
     print('generate_predict_xml()')
     g = np.load('VGG_model/result/test_features/predict_gallery_features.npy')
     p = np.load('VGG_model/result/test_features/predict_probe_features.npy')
     g_order = np.load('VGG_model/result/test_features/predict_gallery_orders.npy')
     p_order = np.load('VGG_model/result/test_features/predict_probe_orders.npy')
+    if normalize_flag:
+        g = normalize(g)
+        p = normalize(p)
     if False in (g_order == np.array(range(58061))):
         print('g_order error')
         return
@@ -370,9 +389,9 @@ def generate_predict_xml():
 
 
 if __name__ == '__main__':
-    train_1000_mAP()
-    # valid_mAP()
-    # generate_predict_xml()
+    # train_1000_mAP(normalize_flag=False)
+    valid_mAP(normalize_flag=False)
+    # generate_predict_xml(normalize_flag=False)
     # have to
     # 1. delete xml's first line(<?xml version="1.0"?>)
     # 2. delete last line(nothing in last line)
