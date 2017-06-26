@@ -14,7 +14,7 @@ train_flags = Train_Flags()
 def _model_loss(vgg_class):
     # Compute the moving average of all losses
     with tf.variable_scope(tf.get_variable_scope()):
-        vgg_class.calc_loss(vgg_class.fc7, train_flags.tau1, train_flags.tau2, train_flags.beta)
+        vgg_class.calc_loss(vgg_class.output, train_flags.tau1, train_flags.tau2, train_flags.beta)
     losses = tf.add_n(tf.get_collection('losses'), name='total_loss')
 
     # Compute the moving average of total loss.
@@ -25,7 +25,7 @@ def _model_loss(vgg_class):
     return losses
 
 
-def train(retain_flag = True, start_step = 0):
+def train(retain_flag=True, start_step=0):
     print('train(%s)' % (retain_flag))
     # train model, generate valid features
     with tf.Graph().as_default():
@@ -56,7 +56,9 @@ def train(retain_flag = True, start_step = 0):
             # loss
             losses = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0], dtype=tf.float32))
             loss_mean = tf.reduce_mean(losses)
+            loss_max = tf.reduce_max(losses)
             tf.summary.scalar('loss_mean', loss_mean)
+            tf.summary.scalar('loss_max', loss_max)
 
         # Create an optimizer that performs gradient descent.
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -112,12 +114,15 @@ def train(retain_flag = True, start_step = 0):
                 format_str = '%s: step %d, loss = %.2f (%.1f examples/sec; %.3f sec/batch)'
                 print(format_str % (datetime.now(), step, loss_value, examples_per_sec, duration))
 
-            if step % 101 == 0:
+            if step % 100 == 0:
+                summary_str, feature = sess.run([summary_op, vgg.output],
+                                                feed_dict={train_mode: True, gallery_mode: True})
+                print('feature abs mean: %s' % (np.mean(np.abs(feature))))
                 summary_str = sess.run(summary_op, feed_dict={train_mode: True, gallery_mode: True})
                 summary_writer.add_summary(summary_str, step)
 
             if step % 5000 == 0 or (step + 1) == train_flags.max_step:
-            # if (step % 5000 == 0 or (step + 1) == train_flags.max_step) and step != 0:
+                # if (step % 5000 == 0 or (step + 1) == train_flags.max_step) and step != 0:
                 # Save the model checkpoint periodically.
                 checkpoint_path = os.path.join(train_flags.output_check_point_path, train_flags.checkpoint_name)
                 saver.save(sess, checkpoint_path, global_step=step)
@@ -134,14 +139,14 @@ def train(retain_flag = True, start_step = 0):
                     valid_label = valid_gallery_label if gallery_flag else valid_probe_label
                     end_len = features_num % batch_len
                     for batch_index in range(0, features_num - end_len, batch_len):
-                        batch_feature, batch_label = sess.run([vgg.fc7, valid_label],
+                        batch_feature, batch_label = sess.run([vgg.output, valid_label],
                                                               feed_dict={train_mode: False,
                                                                          gallery_mode: gallery_flag})
                         features[batch_index: batch_index + batch_len, :] = batch_feature
                         labels[batch_index: batch_index + batch_len] = batch_label
                         print(batch_name + str(batch_index) + '-' + str(batch_index + batch_len - 1))
                     if end_len != 0:
-                        batch_feature, batch_label = sess.run([vgg.fc7, valid_label],
+                        batch_feature, batch_label = sess.run([vgg.output, valid_label],
                                                               feed_dict={train_mode: False,
                                                                          gallery_mode: gallery_flag})
                         features[batch_index + batch_len: batch_index + batch_len + end_len, :] = batch_feature[
@@ -227,13 +232,13 @@ def generate_features(predict_flag, gallery_flag):
             batch_len = train_flags.test_batch_size
             end_len = features_num % batch_len
             for batch_index in range(0, features_num - end_len, batch_len):
-                batch_feature, batch_label, batch_order = sess.run([vgg.fc7, predict_label, predict_order])
+                batch_feature, batch_label, batch_order = sess.run([vgg.output, predict_label, predict_order])
                 features[batch_index: batch_index + batch_len, :] = batch_feature
                 labels[batch_index: batch_index + batch_len] = batch_label
                 orders[batch_index: batch_index + batch_len] = batch_order
                 print('batch_index: ' + str(batch_index) + '-' + str(batch_index + batch_len - 1))
             if end_len != 0:
-                batch_feature, batch_label, batch_order = sess.run([vgg.fc7, predict_label, predict_order])
+                batch_feature, batch_label, batch_order = sess.run([vgg.output, predict_label, predict_order])
                 features[batch_index + batch_len: batch_index + batch_len + end_len, :] = batch_feature[:end_len]
                 labels[batch_index + batch_len: batch_index + batch_len + end_len] = batch_label[:end_len]
                 orders[batch_index + batch_len: batch_index + batch_len + end_len] = batch_order[:end_len]
