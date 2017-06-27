@@ -33,8 +33,8 @@ class Train_Flags():
         self.max_step = 1000000
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
-        self.train_batch_size = 30
-        self.test_batch_size = 90
+        self.train_batch_size = 10
+        self.test_batch_size = 30
 
         self.output_feature_dim = 100
         self.initial_learning_rate = 0.00001
