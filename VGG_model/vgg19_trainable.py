@@ -168,8 +168,6 @@ class Vgg19:
 
         self.data_dict = None
 
-        return train_test_mode
-
     # # calculate function: the triplet batch output loss
     # def calc_loss(self, logits, distance_alfa):
     #
