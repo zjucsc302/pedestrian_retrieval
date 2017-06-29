@@ -28,12 +28,12 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'model_trip_improve_fc.ckpt'
+        self.checkpoint_name = 'model_trip_improve_nodrop.ckpt'
 
         self.max_step = 1000000
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
-        self.train_batch_size = 10
+        self.train_batch_size = 8
         self.test_batch_size = 30
 
         self.output_feature_dim = 100
@@ -71,7 +71,7 @@ class Vgg19:
     A trainable version VGG19.
     """
 
-    def __init__(self, vgg19_npy_path=None, dropout=0.5, train_test_mode=True):
+    def __init__(self, vgg19_npy_path=None, dropout=0.5):
         if vgg19_npy_path is not None:
             self.data_dict = np.load(vgg19_npy_path, encoding='latin1').item()
         else:
@@ -79,7 +79,6 @@ class Vgg19:
 
         self.var_dict = {}
         self.dropout = dropout
-        self.train_test_mode = train_test_mode
 
     # def build(self, rgb_scaled, test_rgb_scaled, train_test_mode):
     def build(self, rgb_scaled, train_test_mode):
@@ -92,15 +91,15 @@ class Vgg19:
 
         # Convert RGB to BGR
         red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
-        assert red.get_shape().as_list()[1:] == [224, 112, 1]
-        assert green.get_shape().as_list()[1:] == [224, 112, 1]
-        assert blue.get_shape().as_list()[1:] == [224, 112, 1]
+        assert red.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
+        assert green.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
+        assert blue.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
         bgr = tf.concat(axis=3, values=[
             blue - VGG_MEAN[0],
             green - VGG_MEAN[1],
             red - VGG_MEAN[2],
         ])
-        assert bgr.get_shape().as_list()[1:] == [224, 112, 3]
+        assert bgr.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 3]
 
         self.conv1_1 = self.conv_layer(bgr, 3, 64, "conv1_1")
         self.conv1_2 = self.conv_layer(self.conv1_1, 64, 64, "conv1_2")
@@ -121,13 +120,13 @@ class Vgg19:
         self.conv4_3 = self.conv_layer(self.conv4_2, 512, 512, "conv4_3")
         self.conv4_4 = self.conv_layer(self.conv4_3, 512, 512, "conv4_4")
         self.pool4 = self.max_pool(self.conv4_4, 'pool4')
-
+        '''
         self.conv5_1 = self.conv_layer(self.pool4, 512, 512, "conv5_1")
         self.conv5_2 = self.conv_layer(self.conv5_1, 512, 512, "conv5_2")
         self.conv5_3 = self.conv_layer(self.conv5_2, 512, 512, "conv5_3")
         self.conv5_4 = self.conv_layer(self.conv5_3, 512, 512, "conv5_4")
         self.pool5 = self.max_pool(self.conv5_4, 'pool5')
-        '''
+
         self.fc6 = self.fc_layer(self.pool5, 25088, 4096, "fc6")  # 25088 = ((224 // (2 ** 5)) ** 2) * 512
         self.relu6 = tf.nn.relu(self.fc6)
         if train_mode is not None:
@@ -151,12 +150,15 @@ class Vgg19:
         '''
 
         # self.fc6 = self.fc_layer(self.pool3, 100352, 256, "fc6_new")
-        # self.fc6 = self.fc_layer(self.pool4, 50176, 256, "fc6_new")
-        self.fc6 = self.fc_layer(self.pool5, 14336, 256, "fc6_new")
+        self.fc6 = self.fc_layer(self.pool4, 50176, 256, "fc6_new")
+        # self.fc6 = self.fc_layer(self.pool5, 14336, 256, "fc6_new")
+        # self.fc6 = self.fc_layer(self.pool5, 20480, 256, "fc6_new")
         self.relu6 = tf.nn.relu(self.fc6)
         self.relu6 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.relu6, self.dropout), lambda: self.relu6)
 
         self.fc7 = self.fc_layer(self.relu6, 256, 100, "fc7_new")
+        # self.relu7 = tf.nn.relu(self.fc7)
+        # self.relu7 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.relu7, self.dropout), lambda: self.relu7)
 
         # l2_normalize
         # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
@@ -165,6 +167,8 @@ class Vgg19:
         self.output = self.fc7
 
         self.data_dict = None
+
+        return train_test_mode
 
     # # calculate function: the triplet batch output loss
     # def calc_loss(self, logits, distance_alfa):
@@ -189,7 +193,7 @@ class Vgg19:
     #
     #     tf.add_to_collection('losses', cost)
 
-    # calculate function: the triplet batch output loss
+    # improved triplet loss
     def calc_loss(self, logits, tau1, tau2, beta):
         # # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
         logits = tf.cast(logits, dtype=tf.float32)
@@ -200,6 +204,12 @@ class Vgg19:
         dist_ref_to_pos = tf.norm(split_refs - split_poss, 2, 1)
         dist_ref_to_neg = tf.norm(split_refs - split_negs, 2, 1)
 
+        # max_dist_ref_to_pos = tf.reduce_max(dist_ref_to_pos)
+        # min_dist_ref_to_neg = tf.reduce_min(dist_ref_to_neg)
+        # inter_const = tf.maximum(max_dist_ref_to_pos - min_dist_ref_to_neg + tau1, 0.0)
+        # intra_const = tf.maximum(max_dist_ref_to_pos - tau2, 0.0)
+        # costs = inter_const + beta * intra_const
+
         inter_const = tf.maximum(dist_ref_to_pos - dist_ref_to_neg + tau1, 0.0)
         intra_const = tf.maximum(dist_ref_to_pos - tau2, 0.0)
         costs = inter_const + beta * intra_const
@@ -207,11 +217,33 @@ class Vgg19:
 
         tf.summary.scalar('inter_const_mean', tf.reduce_mean(dist_ref_to_neg))
         tf.summary.scalar('intra_const_mean', tf.reduce_mean(dist_ref_to_pos))
-        tf.summary.scalar('inter_const_max', tf.reduce_max(dist_ref_to_neg))
+        tf.summary.scalar('inter_const_min', tf.reduce_min(dist_ref_to_neg))
         tf.summary.scalar('intra_const_max', tf.reduce_max(dist_ref_to_pos))
         accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
         tf.summary.scalar('accuracy', accuracy)
 
+    # # improved triplet loss
+    # def calc_loss(self, logits, tau1, tau2, beta):
+    #     # # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
+    #     logits = tf.cast(logits, dtype=tf.float32)
+    #     logits = tf.nn.l2_normalize(logits, dim=1)
+    #
+    #     split_refs, split_poss, split_negs = tf.split(logits, num_or_size_splits=3, axis=0)
+    #
+    #     dist_ref_to_pos = tf.norm(split_refs - split_poss, 2, 1)
+    #     dist_ref_to_neg = tf.norm(split_refs - split_negs, 2, 1)
+    #
+    #     inter_const = tf.maximum(dist_ref_to_pos - dist_ref_to_neg + tau1, 0.0)
+    #     intra_const = tf.maximum(dist_ref_to_pos - tau2, 0.0)
+    #     costs = inter_const + beta * intra_const
+    #     tf.add_to_collection('losses', costs)
+    #
+    #     tf.summary.scalar('inter_const_mean', tf.reduce_mean(dist_ref_to_neg))
+    #     tf.summary.scalar('intra_const_mean', tf.reduce_mean(dist_ref_to_pos))
+    #     tf.summary.scalar('inter_const_max', tf.reduce_max(dist_ref_to_neg))
+    #     tf.summary.scalar('intra_const_max', tf.reduce_max(dist_ref_to_pos))
+    #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
+    #     tf.summary.scalar('accuracy', accuracy)
 
     def train_batch_inputs(self, dataset_csv_file_path, batch_size):
 
@@ -246,7 +278,6 @@ class Vgg19:
             trains = tf.train.batch(
                 [resized_ref, resized_pos, resized_neg, order],
                 batch_size=batch_size,
-                num_threads=2,
                 capacity=1 + 3 * batch_size
             )
             return trains
