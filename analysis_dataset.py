@@ -81,19 +81,49 @@ def show_target_train_image(id):
 
 def xml_dict():
     data = etree.parse(os.path.abspath('data/predict_result.xml'))
-    root = data.getroot()
-    train_dict = {}
+    # data = etree.parse(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/example_result.xml'))
 
-    ind = 0
+    root = data.getroot()
+    predict_dict = {}
+
     for items in root:
         for item in items:
-            temp = item.attrib
-            temp_dict = {}
-            for key in temp:
-                temp_dict[key] = temp[key]
-            train_dict[ind] = temp_dict
-            ind = ind + 1
-    return train_dict
+            probe_name = item.attrib['imageName']
+            gallerys = []
+            for order in range(200):
+                gallerys.append(item.text[7 * order:7 * order + 6])
+            predict_dict[probe_name] = gallerys
+    return predict_dict
+
+
+def show_predict_result(top_n):
+    predict_dict = xml_dict()
+    for probe, gallerys in predict_dict.iteritems():
+        print('probe: % s' % probe)
+        probe_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vq_path'), probe + '.jpg')
+        skimage.io.imshow(skimage.io.imread(probe_path))
+        skimage.io.show()
+        for gallery in gallerys[:top_n]:
+            print('gallery: % s' % gallery)
+            gallery_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vr_path'),
+                                      gallery + '.jpg')
+            skimage.io.imshow(skimage.io.imread(gallery_path))
+            skimage.io.show()
+
+
+def show_target_predict_result(probe_image):
+    probe_image = str(probe_image)
+    print('probe: % s' % probe_image)
+    probe_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vq_path'), probe_image + '.jpg')
+    skimage.io.imshow(skimage.io.imread(probe_path))
+    skimage.io.show()
+    predict_dict = xml_dict()
+    for gallery in predict_dict[probe_image]:
+        print('gallery: % s' % gallery)
+        gallery_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vr_path'),
+                                  gallery + '.jpg')
+        skimage.io.imshow(skimage.io.imread(gallery_path))
+        skimage.io.show()
 
 
 if __name__ == '__main__':
@@ -106,7 +136,11 @@ if __name__ == '__main__':
     # 2: predict vq probe
     # 3: predict vr gallery
 
-    train_image_count()
+    # train_image_count()
     # show_train_image(id_array=[1,1000,11],max_num=10)
-    show_target_train_image('137452')
-    # show_result()
+    # show_target_train_image('137452')
+
+    # show_train_result()
+    # show_valid_result()
+    # show_predict_result(top_n=5)
+    show_target_predict_result('323305')
