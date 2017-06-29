@@ -135,9 +135,9 @@ def get_triplet_pair_test():
 '''
 
 
-def get_triplet_pair(id_path):
+def get_triplet_pair(id_path, circle_num):
     dataset_triplet_pair = []
-    for circle_number in range(10):
+    for circle_number in range(circle_num):
         temp_id_path = dict(id_path)
         for id, paths in temp_id_path.iteritems():
             # reference image, max_num = 4
@@ -252,7 +252,7 @@ def generate_path_label():
     print('train id: ' + str(len(X_train)))
     print('valid id: ' + str(len(X_valid)))
     # generate train_triplet_pair csv
-    dataset_triplet_pair = get_triplet_pair(X_train)
+    dataset_triplet_pair = get_triplet_pair(X_train, 20)
     generate_train_eval(dataset_triplet_pair, 'data/train_triplet_pair.csv')
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate train_1000 csv
