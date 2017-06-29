@@ -85,7 +85,7 @@ def generate_gallery(img_dict, n):
             probe.append(img)
             plabels.append(int(id))
         # generate gallery, max_num = 40
-        for img in (imgs if len(imgs) < 40 else random.sample(imgs, 40)):
+        for img in (imgs if len(imgs) < 41 else random.sample(imgs, 40)):
             gallery.append(img)
             glabels.append(int(id))
     return probe, gallery, np.array(plabels).astype(np.int32), np.array(glabels).astype(np.int32)
@@ -141,7 +141,7 @@ def get_triplet_pair(id_path):
         temp_id_path = dict(id_path)
         for id, paths in temp_id_path.iteritems():
             # reference image, max_num = 4
-            for ref_image in (paths if len(paths) < 4 else random.sample(paths, 4)):
+            for ref_image in (paths if len(paths) < 5 else random.sample(paths, 4)):
                 pos_image = get_pos_image(ref_image, id, temp_id_path)
                 neg_image = get_neg_image(id, temp_id_path)
                 dataset_triplet_pair.append([ref_image, pos_image, neg_image])
