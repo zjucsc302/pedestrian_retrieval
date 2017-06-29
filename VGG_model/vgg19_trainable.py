@@ -33,8 +33,9 @@ class Train_Flags():
         self.max_step = 1000000
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
-        self.train_batch_size = 8
+        self.train_batch_size = 8 # image = 3*train_batch_size
         self.test_batch_size = 30
+        self.random_train_input_flag = True
 
         self.output_feature_dim = 100
         self.initial_learning_rate = 0.00001
@@ -243,13 +244,13 @@ class Vgg19:
     #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
     #     tf.summary.scalar('accuracy', accuracy)
 
-    def train_batch_inputs(self, dataset_csv_file_path, batch_size):
+    def train_batch_inputs(self, dataset_csv_file_path, batch_size, random_flag):
 
         with tf.name_scope('train_batch_processing'):
             if (os.path.isfile(dataset_csv_file_path) != True):
                 raise ValueError('No data files found for this dataset')
 
-            filename_queue = tf.train.string_input_producer([dataset_csv_file_path], shuffle=False)
+            filename_queue = tf.train.string_input_producer([dataset_csv_file_path], shuffle=random_flag)
             reader = tf.TextLineReader()
             _, serialized_example = reader.read(filename_queue)
             ref_image_path, pos_image_path, neg_image_path, order = tf.decode_csv(
