@@ -48,7 +48,7 @@ def train(retain_flag=True, start_step=0):
         # define input data
         refs_batch, poss_batch, negs_batch, train_orders_batch = vgg.train_batch_inputs(
             train_flags.dataset_train_csv_file_path,
-            train_flags.train_batch_size)
+            train_flags.train_batch_size,train_flags.random_train_input_flag)
         train_batch = tf.concat([refs_batch, poss_batch, negs_batch], 0)
         valid_gallery_batch, valid_gallery_label, valid_gallery_order = vgg.test_batch_inputs(
             train_flags.dataset_valid_gallery_csv_file_path, train_flags.test_batch_size)
