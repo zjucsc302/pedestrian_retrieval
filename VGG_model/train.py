@@ -35,7 +35,7 @@ def train(retain_flag=True, start_step=0):
         gallery_mode = tf.placeholder(tf.bool)  # gallery or probe
 
         # define model
-        vgg = Vgg19(vgg19_npy_path='./vgg19.npy', train_test_mode=train_mode)
+        vgg = Vgg19(vgg19_npy_path='./vgg19.npy')
 
         # define input data
         refs_batch, poss_batch, negs_batch, train_orders_batch = vgg.train_batch_inputs(
@@ -48,13 +48,13 @@ def train(retain_flag=True, start_step=0):
             train_flags.dataset_valid_probe_csv_file_path,
             train_flags.test_batch_size)
         test_batch = tf.cond(gallery_mode, lambda: valid_gallery_batch, lambda: valid_probe_batch)
-        input_batch = tf.cond(vgg.train_test_mode, lambda: train_batch, lambda: test_batch)
+        input_batch = tf.cond(train_mode, lambda: train_batch, lambda: test_batch)
 
         # build model
         with tf.variable_scope(tf.get_variable_scope()):
-            vgg.build(input_batch, vgg.train_test_mode)
+            train_test_mode = vgg.build(input_batch, train_mode)
             # loss
-            losses = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0], dtype=tf.float32))
+            losses = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: _model_loss(vgg))
             loss_mean = tf.reduce_mean(losses)
             loss_max = tf.reduce_max(losses)
             tf.summary.scalar('loss_mean', loss_mean)
@@ -179,7 +179,7 @@ def generate_features(predict_flag, gallery_flag):
     # generate predict features
     with tf.Graph().as_default():
         # build a VGG19 class object
-        vgg = Vgg19(train_test_mode=tf.constant(False, tf.bool))
+        vgg = Vgg19()
 
         # define parameter
         if gallery_flag and predict_flag:
@@ -210,7 +210,7 @@ def generate_features(predict_flag, gallery_flag):
         # build model
         predict_batch, predict_label, predict_order = vgg.test_batch_inputs(input_path, train_flags.test_batch_size)
         with tf.variable_scope(tf.get_variable_scope()):
-            vgg.build(predict_batch, vgg.train_test_mode)
+            train_test_mode = vgg.build(predict_batch, train_test_mode=tf.constant(False, tf.bool))
 
         # run predict
         saver = tf.train.Saver()
