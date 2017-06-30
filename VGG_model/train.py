@@ -43,7 +43,7 @@ def train(retain_flag=True, start_step=0):
         gallery_mode = tf.placeholder(tf.bool)  # gallery or probe
 
         # define model
-        vgg = Vgg19(vgg19_npy_path='./vgg19.npy',dropout=0.5)
+        vgg = Vgg19(vgg19_npy_path='./vgg19.npy',dropout=train_flags.dropout)
 
         # define input data
         refs_batch, poss_batch, negs_batch, train_orders_batch = vgg.train_batch_inputs(
@@ -74,7 +74,7 @@ def train(retain_flag=True, start_step=0):
                                         train_flags.learning_rate_decay_factor,
                                         staircase=True)
         vars_to_optimize = [v for v in tf.trainable_variables() if
-                            (v.name.startswith('fc') | v.name.startswith('conv__'))]
+                            (v.name.startswith('fc') | v.name.startswith('conv'))]
         print '\nvariables to optimize'
         for v in vars_to_optimize:
             print v.name, v.get_shape().as_list()
@@ -110,7 +110,7 @@ def train(retain_flag=True, start_step=0):
         for step in range(start_step, train_flags.max_step):
             start_time = time.time()
             _, loss_value = sess.run([train_op, loss], feed_dict={train_mode: True, gallery_mode: True})
-            # print pool5.shape
+            # print pool2_0.shape
             # _, loss_value, feature = sess.run([train_op, loss_mean, vgg.output], feed_dict={train_mode: True, gallery_mode: True})
             # print('feature abs mean: %s' % (np.mean(np.abs(feature))))
             duration = time.time() - start_time
