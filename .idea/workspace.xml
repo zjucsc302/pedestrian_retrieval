@@ -3,12 +3,17 @@
   <component name="ChangeListManager">
     <list default="true" id="eeff302e-762f-4ad4-9ae1-21cb062477c0" name="Default" comment="">
 <<<<<<< HEAD
+<<<<<<< HEAD
       <change type="NEW" beforePath="" afterPath="$PROJECT_DIR$/analysis_dataset.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/README.md" afterPath="$PROJECT_DIR$/README.md" />
 =======
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.gitignore" afterPath="$PROJECT_DIR$/.gitignore" />
+      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="$PROJECT_DIR$/.idea/workspace.xml" />
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/VGG_model/train.py" afterPath="$PROJECT_DIR$/VGG_model/train.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/VGG_model/vgg19_trainable.py" afterPath="$PROJECT_DIR$/VGG_model/vgg19_trainable.py" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/cmc.py" afterPath="$PROJECT_DIR$/cmc.py" />
@@ -24,8 +29,11 @@
   <component name="ExecutionTargetManager" SELECTED_TARGET="default_target" />
   <component name="FileEditorManager">
 <<<<<<< HEAD
+<<<<<<< HEAD
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
       <file leaf-file-name="generate_label.py" pinned="false" current-in-tab="false">
         <entry file="file://$PROJECT_DIR$/generate_label.py">
@@ -143,7 +151,10 @@
         </entry>
       </file>
     </leaf>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
   </component>
   <component name="FindInProjectRecents">
     <findStrings>
@@ -166,25 +177,36 @@
         <option value="$PROJECT_DIR$/model/test_vgg19_trainable.py" />
         <option value="$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py" />
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
         <option value="$PROJECT_DIR$/README.md" />
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+        <option value="$PROJECT_DIR$/README.md" />
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         <option value="$PROJECT_DIR$/VGG_model/README.md" />
         <option value="$PROJECT_DIR$/process_dataset.py" />
         <option value="$PROJECT_DIR$/train.csv" />
         <option value="$PROJECT_DIR$/train1.csv" />
 <<<<<<< HEAD
+<<<<<<< HEAD
         <option value="$PROJECT_DIR$/test.csv" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         <option value="$PROJECT_DIR$/cmc.py" />
         <option value="$PROJECT_DIR$/test.csv" />
         <option value="$PROJECT_DIR$/VGG_model/vgg19_trainable.py" />
         <option value="$PROJECT_DIR$/VGG_model/train.py" />
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         <option value="$PROJECT_DIR$/gallery.csv" />
         <option value="$PROJECT_DIR$/.gitignore" />
         <option value="$PROJECT_DIR$/test1.py" />
         <option value="$PROJECT_DIR$/test2.py" />
+<<<<<<< HEAD
 <<<<<<< HEAD
         <option value="$PROJECT_DIR$/VGG_model/train.py" />
         <option value="$PROJECT_DIR$/VGG_model/vgg19_trainable.py" />
@@ -206,6 +228,8 @@
     <option name="width" value="1841" />
     <option name="height" value="1092" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         <option value="$PROJECT_DIR$/generate_label.py" />
       </list>
     </option>
@@ -215,7 +239,10 @@
     <option name="y" value="-4" />
     <option name="width" value="1855" />
     <option name="height" value="1084" />
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
   </component>
   <component name="ProjectView">
     <navigator currentView="ProjectPane" proportions="" version="1">
@@ -233,10 +260,13 @@
     </navigator>
     <panes>
 <<<<<<< HEAD
+<<<<<<< HEAD
       <pane id="Scope" />
       <pane id="Scratches" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <pane id="ProjectPane">
         <subPane>
           <PATH>
@@ -264,6 +294,7 @@
             </PATH_ELEMENT>
           </PATH>
 <<<<<<< HEAD
+<<<<<<< HEAD
         </subPane>
       </pane>
     </panes>
@@ -273,6 +304,8 @@
     <property name="settings.editor.selected.configurable" value="vcs.Git" />
     <property name="WebServerToolWindowFactoryState" value="false" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
           <PATH>
             <PATH_ELEMENT>
               <option name="myItemId" value="pedestrian_retrieval" />
@@ -322,7 +355,10 @@
   <component name="PropertiesComponent">
     <property name="last_opened_file_path" value="$PROJECT_DIR$/../Invasive_Species_Monitoring" />
     <property name="settings.editor.selected.configurable" value="vcs.Git" />
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
   </component>
   <component name="RunDashboard">
     <option name="ruleStates">
@@ -350,9 +386,12 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/generate_label.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -372,9 +411,12 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test1.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -394,9 +436,12 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/VGG_model/train.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -416,9 +461,12 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -438,15 +486,19 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/test2.py" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
       <option name="EMULATE_TERMINAL" value="false" />
       <method />
     </configuration>
+<<<<<<< HEAD
 <<<<<<< HEAD
     <configuration default="true" type="DjangoTestsConfigurationType" factoryName="Django tests">
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -514,6 +566,8 @@
     </configuration>
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <configuration default="true" type="PythonConfigurationType" factoryName="Python">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -527,9 +581,12 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="SCRIPT_NAME" value="" />
       <option name="PARAMETERS" value="" />
       <option name="SHOW_COMMAND_LINE" value="false" />
@@ -545,6 +602,7 @@
       <option name="IS_MODULE_SDK" value="false" />
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
+<<<<<<< HEAD
 <<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
       <module name="pedestrian_retrieval" />
@@ -565,6 +623,11 @@
       <method />
     </configuration>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+      <module name="pedestrian_retrieval" />
+      <method />
+    </configuration>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <configuration default="true" type="tests" factoryName="Doctests">
       <option name="INTERPRETER_OPTIONS" value="" />
       <option name="PARENT_ENVS" value="true" />
@@ -576,9 +639,12 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="SCRIPT_NAME" value="" />
       <option name="CLASS_NAME" value="" />
       <option name="METHOD_NAME" value="" />
@@ -599,9 +665,12 @@
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <module name="pedestrian_retrieval" />
 <<<<<<< HEAD
+<<<<<<< HEAD
       <EXTENSION ID="PythonCoverageRunConfigurationExtension" enabled="false" sample_coverage="true" runner="coverage.py" />
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <option name="_new_regexPattern" value="&quot;&quot;" />
       <option name="_new_additionalArguments" value="&quot;&quot;" />
       <option name="_new_target" value="&quot;.&quot;" />
@@ -640,6 +709,7 @@
   </component>
   <component name="ToolWindowManager">
 <<<<<<< HEAD
+<<<<<<< HEAD
     <frame x="80" y="-11" width="1841" height="1092" extended-state="6" />
     <layout>
       <window_info id="Project" active="true" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.24741708" sideWeight="0.5" order="0" side_tool="false" content_ui="combo" />
@@ -648,6 +718,8 @@
       <window_info id="Database" active="false" anchor="right" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="-1" side_tool="false" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.32307693" sideWeight="0.49811321" order="2" side_tool="false" content_ui="tabs" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <frame x="65" y="-4" width="1855" height="1084" extended-state="6" />
     <editor active="true" />
     <layout>
@@ -655,7 +727,10 @@
       <window_info id="TODO" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="6" side_tool="false" content_ui="tabs" />
       <window_info id="Event Log" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.39589745" sideWeight="0.5018868" order="7" side_tool="true" content_ui="tabs" />
       <window_info id="Run" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="true" show_stripe_button="true" weight="0.32307693" sideWeight="0.49811321" order="2" side_tool="false" content_ui="tabs" />
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
       <window_info id="Version Control" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="10" side_tool="false" content_ui="tabs" />
       <window_info id="Python Console" active="false" anchor="bottom" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.33" sideWeight="0.5" order="8" side_tool="false" content_ui="tabs" />
       <window_info id="Structure" active="false" anchor="left" auto_hide="false" internal_type="DOCKED" type="DOCKED" visible="false" show_stripe_button="true" weight="0.25" sideWeight="0.5" order="1" side_tool="false" content_ui="tabs" />
@@ -673,11 +748,14 @@
     </layout>
   </component>
 <<<<<<< HEAD
+<<<<<<< HEAD
   <component name="TypeScriptGeneratedFilesManager">
     <option name="processedProjectFiles" value="true" />
   </component>
 =======
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
   <component name="VcsContentAnnotationSettings">
     <option name="myLimit" value="2678400000" />
   </component>
@@ -696,8 +774,11 @@
       </provider>
     </entry>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/train1.csv" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/train1.csv">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="54">
@@ -705,11 +786,15 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/VGG_model/vgg19_trainable.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="2052">
           <caret line="114" column="47" lean-forward="true" selection-start-line="114" selection-start-column="47" selection-end-line="114" selection-end-column="47" />
+<<<<<<< HEAD
 <<<<<<< HEAD
           <folding />
         </state>
@@ -717,6 +802,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/train.csv" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
           <folding>
             <element signature="e#0#23#0" expanded="true" />
           </folding>
@@ -730,11 +817,15 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/VGG_model/train.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="270">
           <caret line="15" column="0" lean-forward="true" selection-start-line="15" selection-start-column="0" selection-end-line="15" selection-end-column="0" />
+<<<<<<< HEAD
 <<<<<<< HEAD
           <folding />
 =======
@@ -742,6 +833,11 @@
             <element signature="e#0#29#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#0#29#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -750,12 +846,18 @@
         <state relative-caret-position="1764">
           <caret line="103" column="0" lean-forward="false" selection-start-line="103" selection-start-column="0" selection-end-line="103" selection-end-column="0" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#2#35#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#2#35#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -774,12 +876,15 @@
         <state relative-caret-position="270">
           <caret line="23" column="45" lean-forward="true" selection-start-line="23" selection-start-column="45" selection-end-line="23" selection-end-column="45" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
           <folding>
             <element signature="e#0#29#0" expanded="true" />
           </folding>
@@ -796,7 +901,10 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/process_dataset.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="54">
@@ -809,12 +917,18 @@
         <state relative-caret-position="1854">
           <caret line="107" column="68" lean-forward="false" selection-start-line="107" selection-start-column="68" selection-end-line="107" selection-end-column="68" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#0#23#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -823,12 +937,18 @@
         <state relative-caret-position="1764">
           <caret line="103" column="0" lean-forward="false" selection-start-line="103" selection-start-column="0" selection-end-line="103" selection-end-column="0" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#2#35#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#2#35#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -837,12 +957,18 @@
         <state relative-caret-position="1926">
           <caret line="107" column="68" lean-forward="false" selection-start-line="107" selection-start-column="68" selection-end-line="107" selection-end-column="68" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#0#23#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -857,8 +983,11 @@
       </provider>
     </entry>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="774">
@@ -869,7 +998,10 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/process_dataset.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="54">
@@ -882,12 +1014,18 @@
         <state relative-caret-position="198">
           <caret line="11" column="20" lean-forward="true" selection-start-line="11" selection-start-column="20" selection-end-line="11" selection-end-column="20" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#0#29#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#0#29#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -896,12 +1034,18 @@
         <state relative-caret-position="1764">
           <caret line="103" column="0" lean-forward="true" selection-start-line="103" selection-start-column="0" selection-end-line="103" selection-end-column="0" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#2#35#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#2#35#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -910,12 +1054,18 @@
         <state relative-caret-position="2826">
           <caret line="157" column="44" lean-forward="false" selection-start-line="157" selection-start-column="44" selection-end-line="157" selection-end-column="44" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#0#23#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#0#23#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -930,8 +1080,11 @@
       </provider>
     </entry>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="774">
@@ -942,7 +1095,10 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/process_dataset.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="54">
@@ -955,12 +1111,18 @@
         <state relative-caret-position="1818">
           <caret line="101" column="33" lean-forward="true" selection-start-line="101" selection-start-column="33" selection-end-line="101" selection-end-column="33" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#0#29#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#0#29#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
@@ -976,23 +1138,32 @@
         <state relative-caret-position="0">
           <caret line="0" column="0" lean-forward="true" selection-start-line="0" selection-start-column="0" selection-end-line="0" selection-end-column="0" />
 <<<<<<< HEAD
+<<<<<<< HEAD
           <folding />
 =======
           <folding>
             <element signature="e#2#35#0" expanded="true" />
           </folding>
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+          <folding>
+            <element signature="e#2#35#0" expanded="true" />
+          </folding>
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/model/test_vgg19_trainable.py" />
     <entry file="file://$PROJECT_DIR$/model/vgg19_trainable.py" />
 <<<<<<< HEAD
+<<<<<<< HEAD
     <entry file="file://$USER_HOME$/github_io/liuhyCV.github.io/README.md" />
     <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/tensorflow/python/ops/math_ops.py" />
     <entry file="file://$PROJECT_DIR$/run.txt" />
     <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/tensorflow/python/training/optimizer.py" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/../github_io/liuhyCV.github.io/README.md">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="54">
@@ -1023,7 +1194,10 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/VGG_model/README.md">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="72">
@@ -1032,9 +1206,12 @@
       </provider>
     </entry>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/VGG_model/run.txt" />
     <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/tensorflow/python/summary/summary.py" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/VGG_model/run.txt">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="0">
@@ -1050,7 +1227,10 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/0train.csv" />
     <entry file="file://$PROJECT_DIR$/VGG_model/utils.py">
       <provider selected="true" editor-type-id="text-editor">
@@ -1067,11 +1247,14 @@
       </provider>
     </entry>
 <<<<<<< HEAD
+<<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/train1.csv" />
     <entry file="file://$USER_HOME$/anaconda2/lib/python2.7/site-packages/numpy/core/numeric.py" />
     <entry file="file://$PROJECT_DIR$/train.csv" />
     <entry file="file://$PROJECT_DIR$/gallery.csv" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/train1.csv">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="67509">
@@ -1108,7 +1291,10 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/.gitignore">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="144">
@@ -1117,6 +1303,7 @@
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 <<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py" />
     <entry file="file://$PROJECT_DIR$/test2.py" />
@@ -1127,6 +1314,8 @@
           <folding>
             <element signature="e#0#18#0" expanded="true" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/cmc.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="324">
@@ -1135,11 +1324,15 @@
             <element signature="e#44#62#0" expanded="true" />
             <element signature="e#504#2628#0" expanded="false" />
             <element signature="e#2726#5347#0" expanded="false" />
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
           </folding>
         </state>
       </provider>
     </entry>
+<<<<<<< HEAD
 <<<<<<< HEAD
     <entry file="file://$PROJECT_DIR$/test.csv" />
     <entry file="file://$PROJECT_DIR$/README.md">
@@ -1148,6 +1341,8 @@
           <caret line="49" column="7" lean-forward="false" selection-start-line="49" selection-start-column="7" selection-end-line="49" selection-end-column="7" />
           <folding />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
     <entry file="file://$PROJECT_DIR$/VGG_model/test_vgg19_trainable.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="97">
@@ -1155,12 +1350,16 @@
           <folding>
             <element signature="e#47#70#0" expanded="true" />
           </folding>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/generate_label.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
 <<<<<<< HEAD
         <state relative-caret-position="858">
           <caret line="267" column="0" lean-forward="false" selection-start-line="267" selection-start-column="0" selection-end-line="267" selection-end-column="0" />
@@ -1174,6 +1373,8 @@
           <caret line="249" column="62" lean-forward="false" selection-start-line="249" selection-start-column="62" selection-end-line="249" selection-end-column="62" />
           <folding />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         <state relative-caret-position="313">
           <caret line="127" column="35" lean-forward="false" selection-start-line="127" selection-start-column="35" selection-end-line="127" selection-end-column="35" />
           <folding>
@@ -1199,12 +1400,16 @@
           <folding>
             <element signature="e#0#18#0" expanded="true" />
           </folding>
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/VGG_model/vgg19_trainable.py">
       <provider selected="true" editor-type-id="text-editor">
+<<<<<<< HEAD
 <<<<<<< HEAD
         <state relative-caret-position="858">
           <caret line="394" column="0" lean-forward="false" selection-start-line="394" selection-start-column="0" selection-end-line="394" selection-end-column="0" />
@@ -1217,6 +1422,8 @@
         <state relative-caret-position="98">
           <caret line="325" column="0" lean-forward="true" selection-start-line="325" selection-start-column="0" selection-end-line="325" selection-end-column="0" />
 =======
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
         <state relative-caret-position="520">
           <caret line="202" column="0" lean-forward="false" selection-start-line="197" selection-start-column="0" selection-end-line="202" selection-end-column="0" />
           <folding>
@@ -1239,7 +1446,10 @@
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="180">
           <caret line="10" column="53" lean-forward="true" selection-start-line="10" selection-start-column="53" selection-end-line="10" selection-end-column="53" />
+<<<<<<< HEAD
 >>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+=======
+>>>>>>> 5b9c258bf09a1640293828ccd6276262ea2f54ec
           <folding />
         </state>
       </provider>

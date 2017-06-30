@@ -16,13 +16,21 @@ def _model_loss(vgg_class):
     with tf.variable_scope(tf.get_variable_scope()):
         vgg_class.calc_loss(vgg_class.output, train_flags.tau1, train_flags.tau2, train_flags.beta)
     losses = tf.add_n(tf.get_collection('losses'), name='total_loss')
+    loss_mean = tf.reduce_mean(losses)
+    loss_max = tf.reduce_max(losses)
+    tf.summary.scalar('loss_mean', loss_mean)
+    tf.summary.scalar('loss_max', loss_max)
 
-    # Compute the moving average of total loss.
-    loss_averages = tf.train.ExponentialMovingAverage(0.9, name='avg')
-    loss_averages_op = loss_averages.apply([losses])
+    loss_mean = evg_loss(loss_mean, 0.9)
+    return loss_mean
+
+
+def evg_loss(loss, decay):
+    loss_averages = tf.train.ExponentialMovingAverage(decay, name='avg')
+    loss_averages_op = loss_averages.apply([loss])
     with tf.control_dependencies([loss_averages_op]):
-        losses = tf.identity(losses)
-    return losses
+        loss = tf.identity(loss)
+    return loss
 
 
 def train(retain_flag=True, start_step=0):
@@ -35,12 +43,12 @@ def train(retain_flag=True, start_step=0):
         gallery_mode = tf.placeholder(tf.bool)  # gallery or probe
 
         # define model
-        vgg = Vgg19(vgg19_npy_path='./vgg19.npy', train_test_mode=train_mode)
+        vgg = Vgg19(vgg19_npy_path='./vgg19.npy',dropout=train_flags.dropout)
 
         # define input data
         refs_batch, poss_batch, negs_batch, train_orders_batch = vgg.train_batch_inputs(
             train_flags.dataset_train_csv_file_path,
-            train_flags.train_batch_size)
+            train_flags.train_batch_size,train_flags.random_train_input_flag)
         train_batch = tf.concat([refs_batch, poss_batch, negs_batch], 0)
         valid_gallery_batch, valid_gallery_label, valid_gallery_order = vgg.test_batch_inputs(
             train_flags.dataset_valid_gallery_csv_file_path, train_flags.test_batch_size)
@@ -48,17 +56,13 @@ def train(retain_flag=True, start_step=0):
             train_flags.dataset_valid_probe_csv_file_path,
             train_flags.test_batch_size)
         test_batch = tf.cond(gallery_mode, lambda: valid_gallery_batch, lambda: valid_probe_batch)
-        input_batch = tf.cond(vgg.train_test_mode, lambda: train_batch, lambda: test_batch)
+        input_batch = tf.cond(train_mode, lambda: train_batch, lambda: test_batch)
 
         # build model
         with tf.variable_scope(tf.get_variable_scope()):
-            vgg.build(input_batch, vgg.train_test_mode)
+            vgg.build(input_batch, train_mode)
             # loss
-            losses = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0], dtype=tf.float32))
-            loss_mean = tf.reduce_mean(losses)
-            loss_max = tf.reduce_max(losses)
-            tf.summary.scalar('loss_mean', loss_mean)
-            tf.summary.scalar('loss_max', loss_max)
+            loss = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0.0],dtype=tf.float32))
 
         # Create an optimizer that performs gradient descent.
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -70,11 +74,7 @@ def train(retain_flag=True, start_step=0):
                                         train_flags.learning_rate_decay_factor,
                                         staircase=True)
         vars_to_optimize = [v for v in tf.trainable_variables() if
-<<<<<<< HEAD
-                            (v.name.startswith('fc') | v.name.startswith('conv4'))]
-=======
-                            (v.name.startswith('fc') | v.name.startswith('conv__'))]
->>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+                            (v.name.startswith('fc') | v.name.startswith('conv'))]
         print '\nvariables to optimize'
         for v in vars_to_optimize:
             print v.name, v.get_shape().as_list()
@@ -82,7 +82,7 @@ def train(retain_flag=True, start_step=0):
         opt = tf.train.AdamOptimizer(lr)
 
         # grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
-        grads = opt.compute_gradients(loss_mean, var_list=vars_to_optimize)
+        grads = opt.compute_gradients(loss, var_list=vars_to_optimize)
         apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
         train_op = tf.group(apply_gradient_op)
 
@@ -109,11 +109,8 @@ def train(retain_flag=True, start_step=0):
         print('start training')
         for step in range(start_step, train_flags.max_step):
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss_mean], feed_dict={train_mode: True, gallery_mode: True})
-<<<<<<< HEAD
-=======
-            # print pool5.shape
->>>>>>> b1b05e9dd8d5adfebe0d96c356453b179c12ef7e
+            _, loss_value = sess.run([train_op, loss], feed_dict={train_mode: True, gallery_mode: True})
+            # print pool2_0.shape
             # _, loss_value, feature = sess.run([train_op, loss_mean, vgg.output], feed_dict={train_mode: True, gallery_mode: True})
             # print('feature abs mean: %s' % (np.mean(np.abs(feature))))
             duration = time.time() - start_time
@@ -186,7 +183,7 @@ def generate_features(predict_flag, gallery_flag):
     # generate predict features
     with tf.Graph().as_default():
         # build a VGG19 class object
-        vgg = Vgg19(train_test_mode=tf.constant(False, tf.bool))
+        vgg = Vgg19()
 
         # define parameter
         if gallery_flag and predict_flag:
@@ -217,7 +214,7 @@ def generate_features(predict_flag, gallery_flag):
         # build model
         predict_batch, predict_label, predict_order = vgg.test_batch_inputs(input_path, train_flags.test_batch_size)
         with tf.variable_scope(tf.get_variable_scope()):
-            vgg.build(predict_batch, vgg.train_test_mode)
+            vgg.build(predict_batch, train_test_mode=tf.constant(False, tf.bool))
 
         # run predict
         saver = tf.train.Saver()

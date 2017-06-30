@@ -5,8 +5,8 @@ from xml.etree import ElementTree
 import os, sys
 import random
 from sklearn.model_selection import train_test_split
-from cmc import *
 import cPickle as pickle
+import numpy as np
 
 
 def get_dict_ids_images():
@@ -84,8 +84,8 @@ def generate_gallery(img_dict, n):
             imgs.pop(imgs.index(img))
             probe.append(img)
             plabels.append(int(id))
-        # generate gallery
-        for img in imgs:
+        # generate gallery, max_num = 40
+        for img in (imgs if len(imgs) < 41 else random.sample(imgs, 40)):
             gallery.append(img)
             glabels.append(int(id))
     return probe, gallery, np.array(plabels).astype(np.int32), np.array(glabels).astype(np.int32)
@@ -135,15 +135,16 @@ def get_triplet_pair_test():
 '''
 
 
-def get_triplet_pair(train_eval):
+def get_triplet_pair(id_path, circle_num):
     dataset_triplet_pair = []
-    for key_id, value_images_list in train_eval.iteritems():
-        # make every image in train_eval as reference image
-        for ref_image in value_images_list:
-            ref_pos_image = get_pos_image(ref_image, key_id, train_eval)
-            ref_neg_image = get_neg_image(key_id, train_eval)
-            dataset_triplet_pair.append([ref_image, ref_pos_image, ref_neg_image])
-
+    for circle_number in range(circle_num):
+        temp_id_path = dict(id_path)
+        for id, paths in temp_id_path.iteritems():
+            # reference image, max_num = 4
+            for ref_image in (paths if len(paths) < 5 else random.sample(paths, 4)):
+                pos_image = get_pos_image(ref_image, id, temp_id_path)
+                neg_image = get_neg_image(id, temp_id_path)
+                dataset_triplet_pair.append([ref_image, pos_image, neg_image])
     return dataset_triplet_pair
 
 
@@ -226,9 +227,7 @@ def array2dict(array):
     return dict
 
 
-def generate_path_label():
-    print('generate_path_label()')
-    # import train and valid data
+def get_id_path_dict():
     pfile = 'data/id_path.pkl'
     if os.path.exists(pfile):
         print('id_path.pkl exist, load from id_path.pkl')
@@ -239,15 +238,22 @@ def generate_path_label():
         id_path = get_dict_ids_images()
         with open(pfile, "wb") as f:
             pickle.dump(id_path, f)
+    return id_path
+
+
+def generate_path_label():
+    print('generate_path_label()')
+    # import train and valid data
+    id_path = get_id_path_dict()
     # split train and valid date
     id_path_array = dict2array(id_path)
-    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.15, random_state=1)
+    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.1, random_state=1)
     X_train = array2dict(X_train_array)
     X_valid = array2dict(X_valid_array)
     print('train id: ' + str(len(X_train)))
     print('valid id: ' + str(len(X_valid)))
     # generate train_triplet_pair csv
-    dataset_triplet_pair = get_triplet_pair(X_train)
+    dataset_triplet_pair = get_triplet_pair(X_train, 20)
     generate_train_eval(dataset_triplet_pair, 'data/train_triplet_pair.csv')
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate train_1000 csv
