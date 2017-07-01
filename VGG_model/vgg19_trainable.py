@@ -5,6 +5,7 @@ from functools import reduce
 import os
 from tensorflow.python.platform import gfile
 import csv
+from vgg_preprocessing import my_preprocess_train
 
 VGG_MEAN = [103.939, 116.779, 123.68]
 # VGG_MEAN = [98.200, 98.805, 102.044]
@@ -28,9 +29,9 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'trip_improve_mine_norelu.ckpt'
+        self.checkpoint_name = 'trip_improve_mine_noevg.ckpt'
 
-        self.max_step = 30000
+        self.max_step = 30001
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
         self.train_batch_size = 16 # image = 3*train_batch_size
@@ -233,58 +234,6 @@ class Vgg19:
 
         self.data_dict = None
 
-    # # basic the triplet loss
-    # def calc_loss(self, logits, distance_alfa):
-    #
-    #     split_refs, split_poss, split_negs = tf.split(logits, num_or_size_splits=3, axis=0)
-    #
-    #     # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
-    #     float_split_refs = tf.cast(split_refs, dtype=tf.float32)
-    #     float_split_poss = tf.cast(split_poss, dtype=tf.float32)
-    #     float_split_negs = tf.cast(split_negs, dtype=tf.float32)
-    #
-    #     norm_split_refs = tf.nn.l2_normalize(float_split_refs, dim=1)
-    #     norm_split_poss = tf.nn.l2_normalize(float_split_poss, dim=1)
-    #     norm_split_negs = tf.nn.l2_normalize(float_split_negs, dim=1)
-    #
-    #     dist_ref_to_pos = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_poss)), 1)
-    #     dist_ref_to_neg = tf.reduce_sum(tf.square(tf.subtract(norm_split_refs, norm_split_negs)), 1)
-    #
-    #     basic_cost = tf.add(tf.subtract(dist_ref_to_pos, dist_ref_to_neg), distance_alfa)
-    #
-    #     cost = tf.maximum(basic_cost, 0.0)
-    #
-    #     tf.add_to_collection('losses', cost)
-
-    # # improved triplet loss
-    # def calc_loss(self, logits, tau1, tau2, beta):
-    #     # # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
-    #     logits = tf.cast(logits, dtype=tf.float32)
-    #     logits = tf.nn.l2_normalize(logits, dim=1)
-    #
-    #     split_refs, split_poss, split_negs = tf.split(logits, num_or_size_splits=3, axis=0)
-    #
-    #     dist_ref_to_pos = tf.norm(split_refs - split_poss, 2, 1)
-    #     dist_ref_to_neg = tf.norm(split_refs - split_negs, 2, 1)
-    #
-    #     # max_dist_ref_to_pos = tf.reduce_max(dist_ref_to_pos)
-    #     # min_dist_ref_to_neg = tf.reduce_min(dist_ref_to_neg)
-    #     # inter_const = tf.maximum(max_dist_ref_to_pos - min_dist_ref_to_neg + tau1, 0.0)
-    #     # intra_const = tf.maximum(max_dist_ref_to_pos - tau2, 0.0)
-    #     # costs = inter_const + beta * intra_const
-    #
-    #     inter_const = tf.maximum(dist_ref_to_pos - dist_ref_to_neg + tau1, 0.0)
-    #     intra_const = tf.maximum(dist_ref_to_pos - tau2, 0.0)
-    #     costs = inter_const + beta * intra_const
-    #     tf.add_to_collection('losses', costs)
-    #
-    #     tf.summary.scalar('inter_const_mean', tf.reduce_mean(dist_ref_to_neg))
-    #     tf.summary.scalar('intra_const_mean', tf.reduce_mean(dist_ref_to_pos))
-    #     tf.summary.scalar('inter_const_min', tf.reduce_min(dist_ref_to_neg))
-    #     tf.summary.scalar('intra_const_max', tf.reduce_max(dist_ref_to_pos))
-    #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
-    #     tf.summary.scalar('accuracy', accuracy)
-
     # improved max triplet loss
     def calc_loss(self, logits, tau1, tau2, beta):
         # # for the reason of tf.nn.l2_normalize, input has the same dtype with the output, should be float
@@ -361,17 +310,21 @@ class Vgg19:
             # resized_ref = tf.image.resize_images(ref, (IMAGE_HEIGHT, IMAGE_WIDTH))
             # resized_pos = tf.image.resize_images(pos, (IMAGE_HEIGHT, IMAGE_WIDTH))
             # resized_neg = tf.image.resize_images(neg, (IMAGE_HEIGHT, IMAGE_WIDTH))
-
             resized_ref = tf.image.resize_images(ref, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
             resized_pos = tf.image.resize_images(pos, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
             resized_neg = tf.image.resize_images(neg, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
-            crop_ref = tf.image.crop_to_bounding_box(resized_ref, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
-            crop_pos = tf.image.crop_to_bounding_box(resized_pos, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
-            crop_neg = tf.image.crop_to_bounding_box(resized_neg, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
+            resized_ref = tf.image.crop_to_bounding_box(resized_ref, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
+            resized_pos = tf.image.crop_to_bounding_box(resized_pos, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
+            resized_neg = tf.image.crop_to_bounding_box(resized_neg, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
+
+            resized_ref = my_preprocess_train(resized_ref, IMAGE_HEIGHT, IMAGE_WIDTH)
+            resized_pos = my_preprocess_train(resized_pos, IMAGE_HEIGHT, IMAGE_WIDTH)
+            resized_neg = my_preprocess_train(resized_neg, IMAGE_HEIGHT, IMAGE_WIDTH)
+
 
             # generate batch
             trains = tf.train.batch(
-                [crop_ref, crop_pos, crop_neg, order],
+                [resized_ref, resized_pos, resized_neg, order],
                 batch_size=batch_size,
                 capacity=1 + 3 * batch_size
             )
@@ -397,11 +350,11 @@ class Vgg19:
 
             # resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH))
             resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
-            crop_test = tf.image.crop_to_bounding_box(resized_test, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
+            resized_test = tf.image.crop_to_bounding_box(resized_test, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
 
             # generate batch
             tests = tf.train.batch(
-                [crop_test, test_image_label, order],
+                [resized_test, test_image_label, order],
                 batch_size=batch_size,
                 capacity=1 + batch_size
             )
