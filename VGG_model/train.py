@@ -21,7 +21,7 @@ def _model_loss(vgg_class):
     tf.summary.scalar('loss_mean', loss_mean)
     tf.summary.scalar('loss_max', loss_max)
 
-    loss_mean = evg_loss(loss_mean, 0.9)
+    # loss_mean = evg_loss(loss_mean, 0.9)
     return loss_mean
 
 
