@@ -252,7 +252,7 @@ def generate_path_label():
     print('train id: ' + str(len(X_train)))
     print('valid id: ' + str(len(X_valid)))
     # generate train_triplet_pair csv
-    dataset_triplet_pair = get_triplet_pair(X_train, 20)
+    dataset_triplet_pair = get_triplet_pair(X_train, 50)
     generate_train_eval(dataset_triplet_pair, 'data/train_triplet_pair.csv')
     print('train triplet_pair: ' + str(len(dataset_triplet_pair)))
     # generate train_1000 csv
