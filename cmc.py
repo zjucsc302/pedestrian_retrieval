@@ -10,6 +10,7 @@ from xml.dom.minidom import Document
 import os
 import matplotlib.pyplot as plt
 
+
 def _cmc_core(D, G, P):
     m, n = D.shape
     order = np.argsort(D, axis=0)
@@ -261,15 +262,29 @@ def mAP(distmat, glabels=None, plabels=None, top_n=None, n_repeat=10):
 
 def normalize(nparray):
     # nparray: number * dim
-    nparray = np.transpose(nparray)
-    npsum = np.sum(nparray * nparray, axis=0)
+    nparrayt = np.transpose(nparray)
+    npsum = np.sum(nparrayt * nparrayt, axis=0)
     npsum[np.isnan(npsum)] = 0.0001
-    nparray = nparray / np.sqrt(npsum)
-    nparray = np.transpose(nparray)
-    return nparray
+    nparrayt = nparrayt / np.sqrt(npsum)
+    nparraytt = np.transpose(nparrayt)
+    return nparraytt
 
-def train_1000_mAP(normalize_flag=False):
-    print('train_1000_mAP()')
+
+def pick_top(distmat, contain_top_n):
+    print('contain_top: %s' % contain_top_n)
+    order = np.argsort(distmat, axis=0)
+    dis_max = distmat.max()
+    for row in range(contain_top_n):
+        for col in range(distmat.shape[1]):
+            distmat[order[row][col]][col] -= dis_max
+    for row in range(contain_top_n, distmat.shape[0]):
+        for col in range(distmat.shape[1]):
+            distmat[order[row][col]][col] = dis_max - distmat[order[row][col]][col]
+    return distmat
+
+
+def train_1000_mAP(normalize_flag=False, contain_top_n=None):
+    print('train_1000_mAP(normalize_flag=%s, contain_top_n=%s)' % (normalize_flag, contain_top_n))
     # valid mAP
     g = np.load('VGG_model/result/test_features/train_1000_gallery_features.npy')
     g_labels = np.load('VGG_model/result/test_features/train_1000_gallery_labels.npy')
@@ -279,12 +294,14 @@ def train_1000_mAP(normalize_flag=False):
         g = normalize(g)
         p = normalize(p)
     distmat = compute_distmat(g, p)
+    if contain_top_n is not None:
+        distmat = pick_top(distmat, contain_top_n=contain_top_n)
     map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
     print('train_1000 map: %f, %f ' % (map1, map2))
 
 
-def valid_mAP(normalize_flag=False):
-    print('valid_mAP()')
+def valid_mAP(normalize_flag=False, contain_top_n=None):
+    print('valid_mAP(normalize_flag=%s, contain_top_n=%s)' % (normalize_flag, contain_top_n))
     min_step = 100000000
     max_step = 0
     for root, dirs, files in os.walk(os.path.abspath('./VGG_model/result/test_features')):
@@ -299,7 +316,7 @@ def valid_mAP(normalize_flag=False):
     # valid mAP
     for step in range(min_step, max_step + 1, 5000):
         g = np.load('VGG_model/result/test_features/valid_gallery_features_step-%d.npy' % step)
-        print('g_feature abs mean : %s' % (np.mean(np.abs(g))))
+        print('step: %s, g_feature abs mean : %s' % (step, np.mean(np.abs(g))))
         g_labels = np.load('VGG_model/result/test_features/valid_gallery_labels_step-%d.npy' % step)
         p = np.load('VGG_model/result/test_features/valid_probe_features_step-%d.npy' % step)
         p_labels = np.load('VGG_model/result/test_features/valid_probe_labels_step-%d.npy' % step)
@@ -307,11 +324,14 @@ def valid_mAP(normalize_flag=False):
             g = normalize(g)
             p = normalize(p)
         distmat = compute_distmat(g, p)
+        if contain_top_n is not None:
+            distmat = pick_top(distmat, contain_top_n=contain_top_n)
         map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
         map2_all.append(map2)
         print('step: %d, map: %f, %f ' % (step, map1, map2))
     plt.plot(range(min_step, max_step + 1, 5000), map2_all)
     plt.show()
+
 
 def create_xml(pname, gnames):
     doc = Document()
@@ -341,8 +361,8 @@ def create_xml(pname, gnames):
     doc.writexml(fp, addindent='  ', newl='\n')
 
 
-def generate_predict_xml(normalize_flag=False):
-    print('generate_predict_xml()')
+def generate_predict_xml(normalize_flag=False, contain_top_n=None):
+    print('generate_predict_xml(normalize_flag=%s, contain_top_n=%s)' % (normalize_flag, contain_top_n))
     g = np.load('VGG_model/result/test_features/predict_gallery_features.npy')
     p = np.load('VGG_model/result/test_features/predict_probe_features.npy')
     g_order = np.load('VGG_model/result/test_features/predict_gallery_orders.npy')
@@ -382,6 +402,8 @@ def generate_predict_xml(normalize_flag=False):
         return
     print('start compute distance')
     distmat = compute_distmat(g, p)
+    if contain_top_n is not None:
+        distmat = pick_top(distmat, contain_top_n=contain_top_n)
     print('start sort')
     sort_g_names = sorted_image_names(distmat, g_names, top_n=200)
     print('start create xml')
@@ -389,9 +411,9 @@ def generate_predict_xml(normalize_flag=False):
 
 
 if __name__ == '__main__':
-    # train_1000_mAP(normalize_flag=False)
-    valid_mAP(normalize_flag=False)
-    # generate_predict_xml(normalize_flag=False)
+    # train_1000_mAP(normalize_flag=False, contain_top_n=4)
+    valid_mAP(normalize_flag=True, contain_top_n=4)
+    # generate_predict_xml(normalize_flag=True, contain_top_n=4)
     # have to
     # 1. delete xml's first line(<?xml version="1.0"?>)
     # 2. delete last line(nothing in last line)
