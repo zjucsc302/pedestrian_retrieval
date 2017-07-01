@@ -372,7 +372,7 @@ def my_preprocess_train(image,
                         resize_ratio=1.2,
                         p_crop=0.1,
                         p_hue=0.1,
-                        p_flip=1.0,
+                        p_flip=0.5,
                         p_brightness=0.1):
     """Preprocesses the given image for training.
 
@@ -382,7 +382,7 @@ def my_preprocess_train(image,
       output_width: The width of the image after preprocessing.
       p_crop: probability of crop, default 0.1
       p_hue: probability of randomly change hue, default 0.1
-      p_flip: probability of randomly flip image horizontally, default 1.0
+      p_flip: probability of randomly flip image horizontally, default 0.5
       p_brightness: probability of randomly change brghtness, default 0.1
       resize_ratio: resize image before clip, default ratio is 1.2
 
