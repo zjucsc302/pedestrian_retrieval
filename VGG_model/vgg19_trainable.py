@@ -7,8 +7,9 @@ from tensorflow.python.platform import gfile
 import csv
 from vgg_preprocessing import my_preprocess_train
 
-VGG_MEAN = [103.939, 116.779, 123.68]
+# VGG_MEAN = [103.939, 116.779, 123.68]
 # VGG_MEAN = [98.200, 98.805, 102.044]
+VGG_MEAN = [98.3, 98.5, 101.1]
 
 IMAGE_HEIGHT = 224
 IMAGE_WIDTH = 112
@@ -29,7 +30,7 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'trip_improve_mine_noevg.ckpt'
+        self.checkpoint_name = 'trip_improve_mine_64.ckpt'
 
         self.max_step = 30001
         self.num_per_epoch = 10000
@@ -223,12 +224,13 @@ class Vgg19:
             name='pool2')
 
         self.pool2_flat = tf.reshape(self.pool2_0, [-1, 28 * 14 * 32])
-        # self.fc3_0 = tf.layers.dense(inputs=self.pool2_flat, units=1024, activation=tf.nn.relu, name='fc3_0')
-        self.fc3_0 = tf.layers.dense(inputs=self.pool2_flat, units=1024, name='fc3_0')
-        # self.fc3_0 = self.fc_layer(self.pool2_0, 28 * 14 * 32, 512, "fc3_0")
-        # self.relu3_0 = tf.nn.relu(self.fc3_0)
+        # self.pool2_flat = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.pool2_flat, self.dropout), lambda: self.pool2_flat)
+
+        self.fc3_0 = tf.layers.dense(inputs=self.pool2_flat,
+                                     units=1024,
+                                     activation=tf.nn.relu,
+                                     name='fc3_0')
         self.fc3_0 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.fc3_0, self.dropout), lambda: self.fc3_0)
-        # self.fc4_0 = tf.layers.dense(inputs=self.fc3_0, units=512, activation=tf.nn.relu, name='fc4_0')
 
         self.output = self.fc3_0
 
@@ -256,7 +258,7 @@ class Vgg19:
         tf.summary.scalar('intra_const_mean', tf.reduce_mean(dist_ref_to_pos))
         tf.summary.scalar('inter_const_min', tf.reduce_min(dist_ref_to_neg))
         tf.summary.scalar('intra_const_max', tf.reduce_max(dist_ref_to_pos))
-        accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
+        accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, dtype=tf.float32))
         tf.summary.scalar('accuracy', accuracy)
 
     # # improved triplet loss
@@ -279,7 +281,7 @@ class Vgg19:
     #     tf.summary.scalar('intra_const_mean', tf.reduce_mean(dist_ref_to_pos))
     #     tf.summary.scalar('inter_const_max', tf.reduce_max(dist_ref_to_neg))
     #     tf.summary.scalar('intra_const_max', tf.reduce_max(dist_ref_to_pos))
-    #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
+    #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, dtype=tf.float32))
     #     tf.summary.scalar('accuracy', accuracy)
 
     def train_batch_inputs(self, dataset_csv_file_path, batch_size, random_flag):
@@ -297,15 +299,15 @@ class Vgg19:
             # input
             ref_image = tf.read_file(ref_image_path)
             ref = tf.image.decode_jpeg(ref_image, channels=3)
-            ref = tf.cast(ref, dtype=tf.int16)
+            ref = tf.cast(ref, dtype=tf.float32)
 
             pos_image = tf.read_file(pos_image_path)
             pos = tf.image.decode_jpeg(pos_image, channels=3)
-            pos = tf.cast(pos, dtype=tf.int16)
+            pos = tf.cast(pos, dtype=tf.float32)
 
             neg_image = tf.read_file(neg_image_path)
             neg = tf.image.decode_jpeg(neg_image, channels=3)
-            neg = tf.cast(neg, dtype=tf.int16)
+            neg = tf.cast(neg, dtype=tf.float32)
 
             # resized_ref = tf.image.resize_images(ref, (IMAGE_HEIGHT, IMAGE_WIDTH))
             # resized_pos = tf.image.resize_images(pos, (IMAGE_HEIGHT, IMAGE_WIDTH))
@@ -346,7 +348,7 @@ class Vgg19:
             # input
             test_file = tf.read_file(test_image_path)
             test_image = tf.image.decode_jpeg(test_file, channels=3)
-            test_image = tf.cast(test_image, dtype=tf.int16)
+            test_image = tf.cast(test_image, dtype=tf.float32)
 
             # resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH))
             resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
