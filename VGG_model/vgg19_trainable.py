@@ -40,7 +40,7 @@ class Train_Flags():
         self.random_train_input_flag = True
 
         self.output_feature_dim = 1024
-        self.dropout = 0.9
+        self.dropout = 0.95
         self.initial_learning_rate = 0.0001
         self.learning_rate_decay_factor = 0.9
         self.moving_average_decay = 0.999999
@@ -228,7 +228,6 @@ class Vgg19:
 
         self.fc3_0 = tf.layers.dense(inputs=self.pool2_flat,
                                      units=1024,
-                                     activation=tf.nn.relu,
                                      name='fc3_0')
         self.fc3_0 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.fc3_0, self.dropout), lambda: self.fc3_0)
 
