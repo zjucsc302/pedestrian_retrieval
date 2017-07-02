@@ -30,7 +30,7 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'trip_improve_mine_64.ckpt'
+        self.checkpoint_name = 'trip_improve_mine_squ.ckpt'
 
         self.max_step = 30001
         self.num_per_epoch = 10000
@@ -40,11 +40,11 @@ class Train_Flags():
         self.random_train_input_flag = True
 
         self.output_feature_dim = 1024
-        self.dropout = 0.95
+        self.dropout = 0.9
         self.initial_learning_rate = 0.0001
         self.learning_rate_decay_factor = 0.9
         self.moving_average_decay = 0.999999
-        self.tau1 = 0.4
+        self.tau1 = 0.6
         self.tau2 = 0.01
         self.beta = 0.002
 
@@ -247,9 +247,9 @@ class Vgg19:
         dist_ref_to_neg = tf.norm(split_refs - split_negs, 2, 1)
         dist_pos_to_neg = tf.norm(split_poss - split_negs, 2, 1)
 
-        max_dis_in_triplet = tf.maximum(dist_ref_to_pos - dist_ref_to_neg, dist_ref_to_pos - dist_pos_to_neg)
+        max_dis_in_triplet = tf.maximum(dist_ref_to_pos**2 - dist_ref_to_neg**2, dist_ref_to_pos**2 - dist_pos_to_neg**2)
         inter_const = tf.maximum(max_dis_in_triplet + tau1, 0.0)
-        intra_const = tf.maximum(dist_ref_to_pos - tau2, 0.0)
+        intra_const = tf.maximum(dist_ref_to_pos**2 - tau2, 0.0)
         costs = inter_const + beta * intra_const
         tf.add_to_collection('losses', costs)
 
