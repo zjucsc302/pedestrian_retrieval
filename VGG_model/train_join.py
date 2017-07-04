@@ -7,7 +7,7 @@ import tensorflow as tf
 
 from join_trainable import Join
 from join_trainable import Train_Flags
-from cmc import mAP
+from pedestrian_retrieval.cmc import mAP, create_xml
 import csv
 
 train_flags = Train_Flags()
@@ -135,7 +135,7 @@ def generate_distance(predict_flag):
 
         # define parameter
         if predict_flag:
-            gallery_path = train_flags.dataset_predict_gallery_csv_file_path
+            gallery_path = train_flags.dataset_predict_repeat_gallery_csv_file_path
             probe_path = train_flags.dataset_predict_repeat_probe_csv_file_path
             distance_npy_name = 'predict_distance.npy'
             gallery_num = train_flags.predict_gallery_num
@@ -193,7 +193,7 @@ def generate_distance(predict_flag):
 
 
 def valid_result():
-    generate_distance(False)
+    generate_distance(predict_flag=False)
     dist_mat = np.load('result/distance/valid_distance.npy')
     with open(train_flags.dataset_valid_gallery_csv_file_path, 'rb') as f:
         g_labels = np.array([int(row[1]) for row in csv.reader(f)])
@@ -205,6 +205,42 @@ def valid_result():
     print('valid map: %f, %f ' % (map1, map2))
 
 
+def sort_names(distmat, g_name_array, top_n):
+    distmat = np.transpose(distmat)
+    m, n = distmat.shape
+    if n > top_n:
+        order = np.argsort(distmat, axis=1)[:, :top_n]
+    else:
+        order = np.argsort(distmat, axis=1)
+
+    sort_name = np.zeros(order.shape[0], order.shape[1])
+    for i in range(len(order.shape[0])):
+        sort_name[i, :] = g_name_array[i][order[i]]
+    return sort_name
+
+
+def predict_result():
+    generate_distance(predict_flag=True)
+    dist_mat = np.load('result/distance/predict_distance.npy')
+    name_mat = np.load('data/sort_g_names_top_n.npy')
+    sort_name_mat = sort_names(dist_mat, name_mat, 200)
+
+    p_names_list = []
+    p_names_order_list = []
+    with open(os.path.abspath('../data/predict_probe_name.csv'), "r") as f:
+        for name_order in f.readlines():
+            name_order = name_order.strip('\n')
+            p_names_list.append(int(name_order.split(',')[0]))
+            p_names_order_list.append(float(name_order.split(',')[1]))
+    p_names = np.array(p_names_list)
+    p_names_order = np.array(p_names_order_list)
+    if False in (p_names_order == np.array(range(4480))):
+        print('p_names_order error')
+        return
+    create_xml(p_names, sort_name_mat[:, :200], os.path.abspath('data/predict_result2.xml'))
+
+
 if __name__ == '__main__':
     train(retain_flag=True, start_step=1)
     valid_result()
+    predict_result()
