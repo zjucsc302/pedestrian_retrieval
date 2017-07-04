@@ -29,6 +29,7 @@ class Train_Flags():
         self.dataset_valid_probe_csv_file_path = os.path.abspath('../data/valid_probe.csv')
         self.dataset_valid_repeat_probe_csv_file_path = os.path.abspath('../data/valid_repeat_probe.csv')
         self.dataset_predict_gallery_csv_file_path = os.path.abspath('../data/predict_gallery.csv')
+        self.dataset_predict_repeat_gallery_csv_file_path = os.path.abspath('../data/predict_repeat_gallery.csv')
         self.dataset_predict_probe_csv_file_path = os.path.abspath('../data/predict_probe.csv')
         self.dataset_predict_repeat_probe_csv_file_path = os.path.abspath('../data/predict_repeat_probe.csv')
         self.output_summary_path = os.path.join(self.current_file_path, 'result', 'summary')
@@ -42,7 +43,7 @@ class Train_Flags():
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
         self.train_batch_size = 64  # image = 3*train_batch_size
-        self.test_batch_size = 30
+        self.test_batch_size = 120
         self.random_train_input_flag = True
 
         # self.output_feature_dim = 800
@@ -55,7 +56,7 @@ class Train_Flags():
         self.beta = 0.002
         self.alpha = 0.0005
         self.epsilon = 1.0
-        self.eta = 2.0
+        self.eta = 1.0
         self.lambda_ = 5.0
 
         with open(self.dataset_train_1000_gallery_csv_file_path, 'rb') as f:
