@@ -9,7 +9,8 @@ import cPickle as pickle
 from xml.dom.minidom import Document
 import os
 import matplotlib.pyplot as plt
-
+import csv
+import sys
 
 def _cmc_core(D, G, P):
     m, n = D.shape
@@ -333,7 +334,7 @@ def valid_mAP(normalize_flag=False, contain_top_n=None):
     plt.show()
 
 
-def create_xml(pname, gnames):
+def create_xml(pname, gnames, xml_path):
     doc = Document()
     message = doc.createElement('Message')
     message.setAttribute('Version', '1.0')
@@ -357,11 +358,11 @@ def create_xml(pname, gnames):
         item.appendChild(doc.createTextNode(gname_str))
         items.appendChild(item)
 
-    fp = open('data/predict_result.xml', 'w')
+    fp = open(xml_path, 'w')
     doc.writexml(fp, addindent='  ', newl='\n')
 
 
-def generate_predict_xml(normalize_flag=False, contain_top_n=None):
+def generate_first_predict_xml(normalize_flag=False, contain_top_n=None):
     print('generate_predict_xml(normalize_flag=%s, contain_top_n=%s)' % (normalize_flag, contain_top_n))
     g = np.load('VGG_model/result/test_features/predict_gallery_features.npy')
     p = np.load('VGG_model/result/test_features/predict_probe_features.npy')
@@ -405,15 +406,42 @@ def generate_predict_xml(normalize_flag=False, contain_top_n=None):
     if contain_top_n is not None:
         distmat = pick_top(distmat, contain_top_n=contain_top_n)
     print('start sort')
-    sort_g_names = sorted_image_names(distmat, g_names, top_n=200)
+    sort_g_names_top_n = sorted_image_names(distmat, g_names, top_n=300)
+    np.save('data/sort_g_names_top_n.npy', sort_g_names_top_n)
     print('start create xml')
-    create_xml(p_names, sort_g_names)
+    create_xml(p_names, sort_g_names_top_n[:, :200], 'data/predict_result.xml')
+    generate_top_predict_csv()
+
+def generate_top_predict_csv():
+    print('generate_top_predict_csv()')
+    sort_g_names_top_n = np.load('data/sort_g_names_top_n.npy')
+    probe_num = sort_g_names_top_n.shape[0]
+    gallery_num = sort_g_names_top_n[1]
+
+    # generate predict_repeat
+    with open('data/predict_repeat_probe.csv', 'w') as output:
+        with open('data/predict_probe.csv', 'rb') as f:
+            label = 0
+            for row in csv.reader(f):
+                for j in range(len(gallery_num)):
+                    output.write("%s,%s,%s" % (row[0], label, row[2]))
+                    output.write("\n")
+                    label += 1
+    gallery_folder_path = os.path.join(sys.path[0], 'data/new_online_vali_set_UPLOAD_VERSION/vr_path')
+    with open('data/predict_repeat_gallery.csv', 'w') as output:
+        label = 0
+        for row in sort_g_names_top_n:
+            for i, element in enumerate(row):
+                path = os.path.join(gallery_folder_path, str(element)) + '.jpg'
+                output.write("%s,%s,%s" % (path, label, i))
+                output.write("\n")
+                label += 1
 
 
 if __name__ == '__main__':
-    # train_1000_mAP(normalize_flag=False, contain_top_n=4)
-    valid_mAP(normalize_flag=True, contain_top_n=4)
-    # generate_predict_xml(normalize_flag=True, contain_top_n=4)
+    # train_1000_mAP(normalize_flag=True)
+    # valid_mAP(normalize_flag=True)
+    generate_first_predict_xml(normalize_flag=True)
     # have to
     # 1. delete xml's first line(<?xml version="1.0"?>)
     # 2. delete last line(nothing in last line)
