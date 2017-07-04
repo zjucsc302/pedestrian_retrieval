@@ -191,6 +191,20 @@ def generate_path_label_order_csv(path_csv, image_path_list, label=None):
                 output.write("\n")
 
 
+def generate_path_label_order_repeat_probe_csv(path_csv, repeat_num, image_path_list, label=None):
+    with open(path_csv, 'w') as output:
+        if label is None:
+            for i in range(len(image_path_list)):
+                for j in range(repeat_num):
+                    output.write("%s,%s,%s" % (image_path_list[i], -1, i))
+                    output.write("\n")
+        else:
+            for i in range(len(image_path_list)):
+                for j in range(repeat_num):
+                    output.write("%s,%s,%s" % (image_path_list[i], label[i], i))
+                    output.write("\n")
+
+
 def generate_name_np(path_np, image_path_list):
     name_np = np.zeros(len(image_path_list), dtype=np.int32)
     for i in range(len(image_path_list)):
@@ -246,7 +260,7 @@ def generate_path_label():
     id_path = get_id_path_dict()
     # split train and valid date
     id_path_array = dict2array(id_path)
-    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.1, random_state=1)
+    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.05, random_state=1)
     X_train = array2dict(X_train_array)
     X_valid = array2dict(X_valid_array)
     print('train id: ' + str(len(X_train)))
@@ -265,14 +279,19 @@ def generate_path_label():
     probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
     generate_path_label_order_csv('data/valid_probe.csv', probe_valid, plabels_valid)
     generate_path_label_order_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
+    generate_path_label_order_repeat_probe_csv('data/valid_repeat_probe.csv', len(gallery_valid), probe_valid,
+                                               plabels_valid)
     print('probe_valid: ' + str(len(probe_valid)))
     print('gallery_valid: ' + str(len(gallery_valid)))
+    print('repeat_probe_valid: ' + str(len(probe_valid) * len(gallery_valid)))
     # generate predict csv
     gallery_predict, probe_predict = generate_predict_path()
     generate_path_label_order_csv('data/predict_probe.csv', probe_predict)
     generate_path_label_order_csv('data/predict_gallery.csv', gallery_predict)
+    # generate_path_label_order_repeat_probe_csv('data/predict_repeat_probe.csv', len(gallery_predict), probe_predict)
     print('prob_predict: ' + str(len(probe_predict)))
     print('gallery_predict: ' + str(len(gallery_predict)))
+    # print('repeat_probe_predict: ' + str(len(probe_predict) * len(gallery_predict)))
     # generate predict name csv
     generate_name_order('data/predict_probe_name.csv', probe_predict)
     generate_name_order('data/predict_gallery_name.csv', gallery_predict)
