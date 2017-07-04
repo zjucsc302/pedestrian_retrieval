@@ -37,9 +37,6 @@ def train(retain_flag=True, start_step=0):
     # train model, generate valid features
     with tf.Graph().as_default():
 
-        # build a VGG19 class object
-        train_mode = tf.placeholder(tf.bool)
-
         # define model
         vgg = Join(dropout=train_flags.dropout)
 
@@ -48,20 +45,13 @@ def train(retain_flag=True, start_step=0):
             train_flags.dataset_train_csv_file_path,
             train_flags.train_batch_size, train_flags.random_train_input_flag)
         train_batch = tf.concat([refs_batch, poss_batch, negs_batch], 0)
-        valid_gallery_batch, valid_gallery_label, valid_gallery_order = vgg.test_batch_inputs(
-            train_flags.dataset_valid_gallery_csv_file_path, train_flags.test_batch_size)
-        valid_probe_batch, valid_probe_label, valid_probe_order = vgg.test_batch_inputs(
-            train_flags.dataset_valid_repeat_probe_csv_file_path,
-            train_flags.test_batch_size)
-        test_batch = tf.concat([valid_probe_batch, valid_gallery_batch], 0, 'concat_pg')
-        input_batch = tf.cond(train_mode, lambda: train_batch, lambda: test_batch, 'cond_train_test')
 
         # build model
         with tf.variable_scope(tf.get_variable_scope()):
-            vgg.build(input_batch, train_mode)
+            vgg.build(train_batch, train_test_mode=tf.constant(True, tf.bool))
             # distance_p_g = vgg.get_predict_dist(train_flags.lambda_)
             # loss
-            loss = tf.cond(train_mode, lambda: _model_loss(vgg), lambda: tf.constant([0.0], dtype=tf.float32))
+            loss = _model_loss(vgg)
 
         # Create an optimizer that performs gradient descent.
         global_step = tf.get_variable('global_step', [], initializer=tf.constant_initializer(0), trainable=False)
@@ -107,7 +97,7 @@ def train(retain_flag=True, start_step=0):
         print('start training')
         for step in range(start_step, train_flags.max_step):
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss], feed_dict={train_mode: True})
+            _, loss_value = sess.run([train_op, loss])
             # print pool2_0.shape
             # _, loss_value, feature = sess.run([train_op, loss_mean, vgg.output], feed_dict={train_mode: True, gallery_mode: True})
             # print('feature abs mean: %s' % (np.mean(np.abs(feature))))
@@ -120,11 +110,10 @@ def train(retain_flag=True, start_step=0):
                 print(format_str % (datetime.now(), step, loss_value, examples_per_sec, duration))
 
             if step % 100 == 0:
-                summary_str, s_feature, c_feature = sess.run([summary_op, vgg.s_feature, vgg.c_feature],
-                                                             feed_dict={train_mode: True})
+                summary_str, s_feature, c_feature = sess.run([summary_op, vgg.s_feature, vgg.c_feature])
                 print('s_feature abs mean: %s, c_feature abs mean: %s' % (
                 np.mean(np.abs(s_feature)), np.mean(np.abs(c_feature))))
-                summary_str = sess.run(summary_op, feed_dict={train_mode: True})
+                summary_str = sess.run(summary_op)
                 summary_writer.add_summary(summary_str, step)
 
             if step % 5000 == 0 or (step + 1) == train_flags.max_step:
@@ -138,7 +127,7 @@ def train(retain_flag=True, start_step=0):
 
 
 def generate_distance(predict_flag):
-    print('generate_distance(%s)' % (predict_flag))
+    print('generate_distance(predict_flag=%s)' % (predict_flag))
     # generate predict features
     with tf.Graph().as_default():
         # build a VGG19 class object
@@ -149,10 +138,14 @@ def generate_distance(predict_flag):
             gallery_path = train_flags.dataset_predict_gallery_csv_file_path
             probe_path = train_flags.dataset_predict_repeat_probe_csv_file_path
             distance_npy_name = 'predict_distance.npy'
+            gallery_num = train_flags.predict_gallery_num
+            probe_num = train_flags.predict_probe_num
         else:
             gallery_path = train_flags.dataset_valid_gallery_csv_file_path
             probe_path = train_flags.dataset_valid_repeat_probe_csv_file_path
             distance_npy_name = 'valid_distance.npy'
+            gallery_num = train_flags.valid_gallery_num
+            probe_num = train_flags.valid_probe_num
 
         gallery_batch, gallery_label, gallery_order = vgg.test_batch_inputs(gallery_path, train_flags.test_batch_size)
         probe_batch, probe_label, probe_order = vgg.test_batch_inputs(probe_path, train_flags.test_batch_size)
@@ -180,8 +173,9 @@ def generate_distance(predict_flag):
 
             print('start generate distance')
             # compute distance
-            dist_mat = np.zeros((train_flags.valid_gallery_num, train_flags.predict_probe_num), dtype=float)
-            dist_num = train_flags.valid_gallery_num * train_flags.predict_probe_num
+            dist_mat = np.zeros((gallery_num, probe_num), dtype=float)
+            dist_num = gallery_num * probe_num
+            print('dist_num: %s * %s = %s' % (gallery_num, probe_num, dist_num))
             batch_len = train_flags.test_batch_size
             for batch_index in range(0, dist_num, batch_len):
                 batch_pg_dist, batch_porder, batch_gorder = sess.run(
