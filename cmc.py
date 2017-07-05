@@ -11,6 +11,8 @@ import os
 import matplotlib.pyplot as plt
 import csv
 import sys
+from sklearn.metrics import average_precision_score, precision_recall_curve, auc
+
 
 def _cmc_core(D, G, P):
     m, n = D.shape
@@ -256,9 +258,49 @@ def mAP(distmat, glabels=None, plabels=None, top_n=None, n_repeat=10):
     #
     #     # Compute MAP
     #     ret1 += _map_core(subdist, g, p, top_n)
+    # ret1 = ret1 / n_repeat
+
     ret2 = _map_core(distmat, glabels, plabels, top_n)
 
-    return ret1 / n_repeat, ret2
+    distmat = distmat.transpose()
+    ret1 = mean_ap(distmat, plabels, glabels)
+
+    return ret1, ret2
+
+
+def mean_ap(distmat, query_ids=None, gallery_ids=None, query_cams=None, gallery_cams=None):
+    m, n = distmat.shape
+    # Fill up default values
+    if query_ids is None:
+        query_ids = np.arange(m)
+    if gallery_ids is None:
+        gallery_ids = np.arange(n)
+    if query_cams is None:
+        query_cams = np.zeros(m).astype(np.int32)
+    if gallery_cams is None:
+        gallery_cams = np.ones(n).astype(np.int32)
+    # Ensure numpy array
+    query_ids = np.asarray(query_ids)
+    gallery_ids = np.asarray(gallery_ids)
+    query_cams = np.asarray(query_cams)
+    gallery_cams = np.asarray(gallery_cams)
+    # Sort and find correct matches 按行获得从小到大排序的索引值
+    indices = np.argsort(distmat, axis=1)
+    matches = (gallery_ids[indices] == query_ids[:, np.newaxis])
+    print matches
+    # Compute AP for each query
+    aps = []
+    for i in range(m):
+        # Filter out the same id and same camera
+        valid = ((gallery_ids[indices[i]] != query_ids[i]) |
+                 (gallery_cams[indices[i]] != query_cams[i]))
+        y_true = matches[i][valid]
+        y_score = -distmat[i][indices[i]][valid]
+        if not np.any(y_true): continue
+        aps.append(average_precision_score(y_true, y_score))
+    if len(aps) == 0:
+        raise RuntimeError("No valid query")
+    return np.mean(aps)
 
 
 def normalize(nparray):
@@ -412,6 +454,7 @@ def generate_first_predict_xml(normalize_flag=False, contain_top_n=None):
     create_xml(p_names, sort_g_names_top_n[:, :200], 'data/predict_result.xml')
     generate_top_predict_csv()
 
+
 def generate_top_predict_csv():
     print('generate_top_predict_csv()')
     sort_g_names_top_n = np.load('data/sort_g_names_top_n.npy')
@@ -432,7 +475,7 @@ def generate_top_predict_csv():
         label = 0
         for row in sort_g_names_top_n:
             for i, element in enumerate(row):
-                path = os.path.join(gallery_folder_path, str(element)) + '.jpg'
+                path = os.path.join(gallery_folder_path, str(element).zfill(6)) + '.jpg'
                 output.write("%s,%s,%s" % (path, label, i))
                 output.write("\n")
                 label += 1
