@@ -1,3 +1,6 @@
+#!/usr/bin/python2
+# -*- coding: utf-8 -*-
+
 from datetime import datetime
 import os.path
 import time
@@ -138,7 +141,7 @@ def generate_distance(predict_flag):
             gallery_path = train_flags.dataset_predict_repeat_gallery_csv_file_path
             probe_path = train_flags.dataset_predict_repeat_probe_csv_file_path
             distance_npy_name = 'predict_distance.npy'
-            gallery_num = train_flags.predict_gallery_num
+            gallery_num = train_flags.predict_repeat_probe_num / train_flags.predict_probe_num
             probe_num = train_flags.predict_probe_num
         else:
             gallery_path = train_flags.dataset_valid_gallery_csv_file_path
