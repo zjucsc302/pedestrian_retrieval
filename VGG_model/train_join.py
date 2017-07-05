@@ -215,17 +215,16 @@ def sort_names(distmat, g_name_array, top_n):
         order = np.argsort(distmat, axis=1)[:, :top_n]
     else:
         order = np.argsort(distmat, axis=1)
-
-    sort_name = np.zeros(order.shape[0], order.shape[1])
-    for i in range(len(order.shape[0])):
+    sort_name = np.zeros((order.shape[0], order.shape[1]))
+    for i in range(order.shape[0]):
         sort_name[i, :] = g_name_array[i][order[i]]
-    return sort_name
+    return sort_name.astype(int)
 
 
 def predict_result():
-    generate_distance(predict_flag=True)
+    # generate_distance(predict_flag=True)
     dist_mat = np.load('result/distance/predict_distance.npy')
-    name_mat = np.load('data/sort_g_names_top_n.npy')
+    name_mat = np.load('../data/sort_g_names_top_n.npy')
     sort_name_mat = sort_names(dist_mat, name_mat, 200)
 
     p_names_list = []
@@ -240,7 +239,7 @@ def predict_result():
     if False in (p_names_order == np.array(range(4480))):
         print('p_names_order error')
         return
-    create_xml(p_names, sort_name_mat[:, :200], os.path.abspath('data/predict_result2.xml'))
+    create_xml(p_names, sort_name_mat[:, :200], os.path.abspath('../data/predict_result2.xml'))
 
 
 if __name__ == '__main__':
