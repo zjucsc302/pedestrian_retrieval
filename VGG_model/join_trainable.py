@@ -57,7 +57,7 @@ class Train_Flags():
         self.alpha = 0.0005
         self.epsilon = 1.0
         self.eta = 1.0
-        self.lambda_ = 5.0
+        self.lambda_ = 1.0
 
         with open(self.dataset_train_1000_gallery_csv_file_path, 'rb') as f:
             self.train_1000_gallery_num = sum([1 for row in csv.reader(f)])
