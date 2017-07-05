@@ -71,6 +71,8 @@ class Train_Flags():
             self.predict_gallery_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_predict_probe_csv_file_path, 'rb') as f:
             self.predict_probe_num = sum([1 for row in csv.reader(f)])
+        with open(self.dataset_predict_repeat_probe_csv_file_path, 'rb') as f:
+            self.predict_repeat_probe_num = sum([1 for row in csv.reader(f)])
 
     def check_path_exist(self):
         if not gfile.Exists(self.output_summary_path):
