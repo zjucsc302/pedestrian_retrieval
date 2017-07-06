@@ -9,3 +9,5 @@ test2.py
 train2.py
 VGG_model/result/
 *.pyc
+*.ckpt
+*.meta
