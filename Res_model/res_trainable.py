@@ -19,8 +19,8 @@ class Train_Flags():
 
         self.id_image_path = os.path.abspath('../data/id_image')
         self.dataset_train_csv_file_path = os.path.abspath('../data/train_triplet_pair.csv')
-        self.dataset_train_1000_gallery_csv_file_path = os.path.abspath('../data/train_1000_gallery.csv')
-        self.dataset_train_1000_probe_csv_file_path = os.path.abspath('../data/train_1000_probe.csv')
+        self.dataset_train_200_gallery_csv_file_path = os.path.abspath('../data/train_200_gallery.csv')
+        self.dataset_train_200_probe_csv_file_path = os.path.abspath('../data/train_200_probe.csv')
         self.dataset_valid_gallery_csv_file_path = os.path.abspath('../data/valid_gallery.csv')
         self.dataset_valid_probe_csv_file_path = os.path.abspath('../data/valid_probe.csv')
         self.dataset_predict_gallery_csv_file_path = os.path.abspath('../data/predict_gallery.csv')
@@ -30,14 +30,14 @@ class Train_Flags():
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.resnet_checkpoint_file = 'resnet_v2_50.ckpt'
         self.check_path_exist()
-        self.checkpoint_name = 'trip_improve_mul.ckpt'
+        self.checkpoint_name = 'resnet.ckpt'
 
 
         self.max_step = 30001
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
         self.test_batch_size = 30
-        self.change_file_step = 1000
+        self.change_file_step = 200
 
         self.output_feature_dim = 128
         self.dropout = 0.9
@@ -53,10 +53,10 @@ class Train_Flags():
         self.m = 0.4
 
 
-        with open(self.dataset_train_1000_gallery_csv_file_path, 'rb') as f:
-            self.train_1000_gallery_num = sum([1 for row in csv.reader(f)])
-        with open(self.dataset_train_1000_probe_csv_file_path, 'rb') as f:
-            self.train_1000_probe_num = sum([1 for row in csv.reader(f)])
+        with open(self.dataset_train_200_gallery_csv_file_path, 'rb') as f:
+            self.train_200_gallery_num = sum([1 for row in csv.reader(f)])
+        with open(self.dataset_train_200_probe_csv_file_path, 'rb') as f:
+            self.train_200_probe_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_valid_gallery_csv_file_path, 'rb') as f:
             self.valid_gallery_num = sum([1 for row in csv.reader(f)])
         with open(self.dataset_valid_probe_csv_file_path, 'rb') as f:
@@ -66,9 +66,7 @@ class Train_Flags():
         with open(self.dataset_predict_probe_csv_file_path, 'rb') as f:
             self.predict_probe_num = sum([1 for row in csv.reader(f)])
         for root, dirs, files in os.walk(self.id_image_path):
-            self.id_image_train_num = sum([1 if 'train' in file_name else 0 for file_name in files])
-        for root, dirs, files in os.walk(self.id_image_path):
-            self.id_image_valid_num = sum([1 if 'valid' in file_name else 0 for file_name in files])
+            self.id_image_train_num = sum([1 if 'id_image_train' in file_name else 0 for file_name in files])
 
 
     def check_path_exist(self):
@@ -276,84 +274,34 @@ class ResnetReid:
             # images: [0.0 1.0]
             return images
 
+    def get_train_200_image_batch(self, batch_index, batch_size, folder_path, gallery_flag):
+        if gallery_flag:
+            try:
+                self.valid_gallery_image is None
+            except:
+                print('train 200 gallery image first load')
+                file_path = os.path.join(folder_path, 'train_200_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                with open(file_path, "rb") as f:
+                    self.valid_gallery_image = pickle.load(f)
+                    for i in range(batch_size):
+                        self.valid_gallery_image.append(self.valid_gallery_image[0])
 
-    def train_batch_inputs(self, dataset_csv_file_path, batch_size, random_flag):
+            images = np.array(self.valid_gallery_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            images = images.astype(np.float32) / 255
+            # images: [0.0 1.0]
+            return images
+        else:
+            try:
+                self.valid_probe_image is None
+            except:
+                print('train 200 probe image first load')
+                file_path = os.path.join(folder_path, 'train_200_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                with open(file_path, "rb") as f:
+                    self.valid_probe_image = pickle.load(f)
+                    for i in range(batch_size):
+                        self.valid_probe_image.append(self.valid_probe_image[0])
 
-        with tf.name_scope('train_batch_processing'):
-            if (os.path.isfile(dataset_csv_file_path) != True):
-                raise ValueError('No data files found for this dataset')
-
-            filename_queue = tf.train.string_input_producer([dataset_csv_file_path], shuffle=random_flag)
-            reader = tf.TextLineReader()
-            _, serialized_example = reader.read(filename_queue)
-            ref_image_path, pos_image_path, neg_image_path, order = tf.decode_csv(
-                serialized_example, [["ref_image_path"], ["pos_image_path"], ["neg_image_path"], ["order"]])
-
-            # input
-            ref_image = tf.read_file(ref_image_path)
-            ref = tf.image.decode_jpeg(ref_image, channels=3)
-            ref = tf.cast(ref, dtype=tf.float32)
-
-            pos_image = tf.read_file(pos_image_path)
-            pos = tf.image.decode_jpeg(pos_image, channels=3)
-            pos = tf.cast(pos, dtype=tf.float32)
-
-            neg_image = tf.read_file(neg_image_path)
-            neg = tf.image.decode_jpeg(neg_image, channels=3)
-            neg = tf.cast(neg, dtype=tf.float32)
-
-            # resized_ref = tf.image.resize_images(ref, (IMAGE_HEIGHT, IMAGE_WIDTH))
-            # resized_pos = tf.image.resize_images(pos, (IMAGE_HEIGHT, IMAGE_WIDTH))
-            # resized_neg = tf.image.resize_images(neg, (IMAGE_HEIGHT, IMAGE_WIDTH))
-            resized_ref = tf.image.resize_images(ref, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
-            resized_pos = tf.image.resize_images(pos, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
-            resized_neg = tf.image.resize_images(neg, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
-            resized_ref = tf.image.crop_to_bounding_box(resized_ref, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
-            resized_pos = tf.image.crop_to_bounding_box(resized_pos, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
-            resized_neg = tf.image.crop_to_bounding_box(resized_neg, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
-
-            resized_ref = my_preprocess_train(resized_ref, IMAGE_HEIGHT, IMAGE_WIDTH, p_flip=0.2)
-            resized_pos = my_preprocess_train(resized_pos, IMAGE_HEIGHT, IMAGE_WIDTH, p_flip=0.2)
-            resized_neg = my_preprocess_train(resized_neg, IMAGE_HEIGHT, IMAGE_WIDTH, p_flip=0.2)
-
-            resized_ref = 2.0 * (resized_ref / 255.0) - 1.0
-            resized_pos = 2.0 * (resized_pos / 255.0) - 1.0
-            resized_neg = 2.0 * (resized_neg / 255.0) - 1.0
-
-            # generate batch
-            trains = tf.train.batch(
-                [resized_ref, resized_pos, resized_neg, order],
-                batch_size=batch_size,
-                capacity=1 + 3 * batch_size
-            )
-            return trains
-
-    def test_batch_inputs(self, dataset_test_csv_file_path, batch_size):
-
-        with tf.name_scope('valid_batch_processing'):
-            if (os.path.isfile(dataset_test_csv_file_path) != True):
-                raise ValueError('No data files found for this test dataset')
-
-            filename_queue = tf.train.string_input_producer([dataset_test_csv_file_path], shuffle=False)
-            reader = tf.TextLineReader()
-            _, serialized_example = reader.read(filename_queue)
-            test_image_path, test_image_label, order = tf.decode_csv(serialized_example,
-                                                                     [["test_image_path"], ["test_image_label"],
-                                                                      ["order"]])
-
-            # input
-            test_file = tf.read_file(test_image_path)
-            test_image = tf.image.decode_jpeg(test_file, channels=3)
-            test_image = tf.cast(test_image, dtype=tf.float32)
-
-            # resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH))
-            resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
-            resized_test = tf.image.crop_to_bounding_box(resized_test, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
-            resized_test = 2.0 * (resized_test / 255.0) - 1.0
-            # generate batch
-            tests = tf.train.batch(
-                [resized_test, test_image_label, order],
-                batch_size=batch_size,
-                capacity=1 + batch_size
-            )
-            return tests
+            images = np.array(self.valid_probe_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            images = images.astype(np.float32) / 255
+            # images: [0.0 1.0]
+            return images
