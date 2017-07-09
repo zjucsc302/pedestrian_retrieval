@@ -265,13 +265,13 @@ def generate_path_label():
     gallery_predict, probe_predict = generate_predict_path()
     generate_image_file(probe_predict, '../data/id_image/predict_probe_image_%s_%s_%s.pkl', 2000)
     generate_image_file(gallery_predict, '../data/id_image/predict_gallery_image_%s_%s_%s.pkl', 2000)
-    generate_path_label_order_csv('data/predict_probe.csv', probe_predict)
-    generate_path_label_order_csv('data/predict_gallery.csv', gallery_predict)
+    generate_path_label_order_csv('../data/predict_probe.csv', probe_predict)
+    generate_path_label_order_csv('../data/predict_gallery.csv', gallery_predict)
     print('prob_predict: ' + str(len(probe_predict)))
     print('gallery_predict: ' + str(len(gallery_predict)))
     # generate predict name csv
-    generate_name_order('data/predict_probe_name.csv', probe_predict)
-    generate_name_order('data/predict_gallery_name.csv', gallery_predict)
+    generate_name_order('../data/predict_probe_name.csv', probe_predict)
+    generate_name_order('../data/predict_gallery_name.csv', gallery_predict)
 
 
 if __name__ == '__main__':
