@@ -11,3 +11,5 @@ VGG_model/result/
 *.pyc
 *.ckpt
 *.meta
+*.jpg
+Res_model/result/
