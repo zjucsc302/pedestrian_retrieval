@@ -38,7 +38,6 @@ def train(retain_flag=True, start_step=0):
     with tf.Graph().as_default():
         # define placeholder
         train_mode = tf.placeholder(tf.bool, name='train_mode')
-        gallery_mode = tf.placeholder(tf.bool, name='gallery_mode')  # gallery or probe
         input_batch = tf.placeholder(tf.float32, [None, IMAGE_HEIGHT, IMAGE_WIDTH, 3], 'input_batch')
 
         # define model
@@ -77,10 +76,7 @@ def train(retain_flag=True, start_step=0):
         sess = tf.Session()
         sess.run(tf.global_variables_initializer())
 
-        # Start the queue runners.
-        coord = tf.train.Coordinator()
-        threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
+        # define summary and saver
         summary_op = tf.summary.merge_all()
         summary_writer = tf.summary.FileWriter(train_flags.output_summary_path, graph=sess.graph)
         saver = tf.train.Saver()
@@ -109,8 +105,7 @@ def train(retain_flag=True, start_step=0):
 
             # start run
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss],
-                                     feed_dict={input_batch: bath, train_mode: True, gallery_mode: True})
+            _, loss_value = sess.run([train_op, loss], feed_dict={input_batch: bath, train_mode: True})
             duration = time.time() - start_time
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
@@ -120,10 +115,9 @@ def train(retain_flag=True, start_step=0):
                 print(format_str % (datetime.now(), step, loss_value, examples_per_sec, duration))
 
             if step % 100 == 0:
-                summary_str, feature = sess.run([summary_op, resnet_reid.output],
-                                                feed_dict={input_batch: bath, train_mode: True, gallery_mode: True})
+                summary_str, feature = sess.run([summary_op, resnet_reid.output],feed_dict={input_batch: bath, train_mode: True})
                 print('feature abs mean: %s' % (np.mean(np.abs(feature))))
-                summary_str = sess.run(summary_op, feed_dict={input_batch: bath, train_mode: True, gallery_mode: True})
+                summary_str = sess.run(summary_op, feed_dict={input_batch: bath, train_mode: True})
                 summary_writer.add_summary(summary_str, step)
 
             if step % 5000 == 0 or (step + 1) == train_flags.max_step:
@@ -143,115 +137,94 @@ def train(retain_flag=True, start_step=0):
                     for batch_index in range(0, features_num - end_len, batch_len):
                         bath = resnet_reid.get_valid_image_batch(batch_index, batch_len, train_flags.id_image_path,
                                                                  gallery_flag)
-                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False,
-                                                                                  gallery_mode: gallery_flag})
+                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
                         features[batch_index: batch_index + batch_len, :] = batch_feature
                         print(batch_name + str(batch_index) + '-' + str(batch_index + batch_len - 1))
                     if end_len != 0:
                         batch_index += batch_len
                         bath = resnet_reid.get_valid_image_batch(batch_index, batch_len, train_flags.id_image_path,
                                                                  gallery_flag)
-                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False,
-                                                                         gallery_mode: gallery_flag})
+                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
                         features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
                         print(batch_name + str(batch_index) + '-' + str(batch_index + end_len - 1))
 
                     # save feature
-                    features_csv_name = 'valid_gallery_features_step-%d.npy' if gallery_flag else 'valid_probe_features_step-%d.npy'
-                    features_csv_path = os.path.join(train_flags.output_test_features_path, features_csv_name % step)
-                    np.save(features_csv_path, features)
+                    features_npy_name = 'valid_gallery_features_step-%d.npy' if gallery_flag else 'valid_probe_features_step-%d.npy'
+                    features_npy_path = os.path.join(train_flags.output_test_features_path, features_npy_name % step)
+                    np.save(features_npy_path, features)
 
                 valid(False)
                 valid(True)
-
-        coord.request_stop()
-        coord.join(threads)
         sess.close()
 
 
 def generate_features(predict_flag, gallery_flag):
     print('generate_features(%s, %s)' % (predict_flag, gallery_flag))
-    # generate predict features
-    with tf.Graph().as_default():
-        # build a VGG19 class object
-        vgg = ResnetReid()
+    # define model just for using function
+    resnet_reid = ResnetReid()
 
-        # define parameter
-        if gallery_flag and predict_flag:
-            input_path = train_flags.dataset_predict_gallery_csv_file_path
-            features_num = train_flags.predict_gallery_num
-            features_csv_name = 'predict_gallery_features.npy'
-            labels_csv_name = 'predict_gallery_labels.npy'
-            orders_csv_name = 'predict_gallery_orders.npy'
-        elif gallery_flag and (not predict_flag):
-            input_path = train_flags.dataset_train_1000_gallery_csv_file_path
-            features_num = train_flags.train_1000_gallery_num
-            features_csv_name = 'train_1000_gallery_features.npy'
-            labels_csv_name = 'train_1000_gallery_labels.npy'
-            orders_csv_name = 'train_1000_gallery_orders.npy'
-        elif (not gallery_flag) and predict_flag:
-            input_path = train_flags.dataset_predict_probe_csv_file_path
-            features_num = train_flags.predict_probe_num
-            features_csv_name = 'predict_probe_features.npy'
-            labels_csv_name = 'predict_probe_labels.npy'
-            orders_csv_name = 'predict_probe_orders.npy'
-        else:
-            input_path = train_flags.dataset_train_1000_probe_csv_file_path
-            features_num = train_flags.train_1000_probe_num
-            features_csv_name = 'train_1000_probe_features.npy'
-            labels_csv_name = 'train_1000_probe_labels.npy'
-            orders_csv_name = 'train_1000_probe_orders.npy'
+    # define parameter
+    if gallery_flag and predict_flag:
+        input_path = train_flags.dataset_predict_gallery_csv_file_path
+        features_num = train_flags.predict_gallery_num
+        features_npy_name = 'predict_gallery_features.npy'
+        get_image_batch = resnet_reid.get_predict_image_batch
+    elif gallery_flag and (not predict_flag):
+        input_path = train_flags.dataset_train_200_gallery_csv_file_path
+        features_num = train_flags.train_200_gallery_num
+        features_npy_name = 'train_200_gallery_features.npy'
+        get_image_batch = resnet_reid.get_train_200_image_batch
+    elif (not gallery_flag) and predict_flag:
+        input_path = train_flags.dataset_predict_probe_csv_file_path
+        features_num = train_flags.predict_probe_num
+        features_npy_name = 'predict_probe_features.npy'
+        get_image_batch = resnet_reid.get_predict_image_batch
+    else:
+        input_path = train_flags.dataset_train_200_probe_csv_file_path
+        features_num = train_flags.train_200_probe_num
+        features_npy_name = 'train_200_probe_features.npy'
+        get_image_batch = resnet_reid.get_train_200_image_batch
 
-        # build model
-        predict_batch, predict_label, predict_order = vgg.test_batch_inputs(input_path, train_flags.test_batch_size)
-        with tf.variable_scope(tf.get_variable_scope()):
-            vgg.build(predict_batch, train_test_mode=tf.constant(False, tf.bool))
+    # load model
+    with open('result/check_point/checkpoint','r') as f:
+        line0 = f.readlines()
+        model_path = line0[0].split('"')[1] + '.meta'
+    saver = tf.train.import_meta_graph(model_path)
 
-        # run predict
-        saver = tf.train.Saver()
-        with tf.Session() as sess:
-            init = tf.global_variables_initializer()
-            sess.run(init)
+    # We can now access the default graph where all our metadata has been loaded
+    graph = tf.get_default_graph()
 
-            # load checkpoint
-            ckpt = tf.train.get_checkpoint_state(train_flags.output_check_point_path)
-            if ckpt and ckpt.model_checkpoint_path:
-                saver.restore(sess, ckpt.model_checkpoint_path)
+    # Finally we can retrieve tensors, operations, etc.
+    train_mode = graph.get_tensor_by_name('train_mode:0')
+    input_batch = graph.get_tensor_by_name('input_batch:0')
+    fc2_add = graph.get_tensor_by_name('fc2_add:0')
+    with tf.Session() as sess:
+        # load checkpoint
+        ckpt = tf.train.get_checkpoint_state(train_flags.output_check_point_path)
+        if ckpt and ckpt.model_checkpoint_path:
+            saver.restore(sess, ckpt.model_checkpoint_path)
+            print('load checkpoint')
 
-            # start the queue runners
-            coord = tf.train.Coordinator()
-            threads = tf.train.start_queue_runners(sess=sess, coord=coord)
-
-            print('start generate features')
-            # get feature batch
-            features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
-            labels = np.zeros(features_num, dtype=float)
-            orders = np.zeros(features_num, dtype=float)
-            batch_len = train_flags.test_batch_size
-            end_len = features_num % batch_len
-            for batch_index in range(0, features_num - end_len, batch_len):
-                batch_feature, batch_label, batch_order = sess.run([vgg.output, predict_label, predict_order])
-                features[batch_index: batch_index + batch_len, :] = batch_feature
-                labels[batch_index: batch_index + batch_len] = batch_label
-                orders[batch_index: batch_index + batch_len] = batch_order
-                print('batch_index: ' + str(batch_index) + '-' + str(batch_index + batch_len - 1))
+        print('start generate features')
+        # get feature batch
+        features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
+        batch_len = train_flags.test_batch_size
+        end_len = features_num % batch_len
+        for batch_index in range(0, features_num - end_len, batch_len):
+            bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, gallery_flag)
+            batch_feature = sess.run(fc2_add, feed_dict={input_batch: bath, train_mode: False})
+            features[batch_index: batch_index + batch_len, :] = batch_feature
+            print('batch_index: ' + str(batch_index) + '-' + str(batch_index + batch_len - 1))
             if end_len != 0:
-                batch_feature, batch_label, batch_order = sess.run([vgg.output, predict_label, predict_order])
-                features[batch_index + batch_len: batch_index + batch_len + end_len, :] = batch_feature[:end_len]
-                labels[batch_index + batch_len: batch_index + batch_len + end_len] = batch_label[:end_len]
-                orders[batch_index + batch_len: batch_index + batch_len + end_len] = batch_order[:end_len]
-                print('batch_index: ' + str(batch_index + batch_len) + '-' + str(batch_index + batch_len + end_len - 1))
+                batch_index += batch_len
+                bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, gallery_flag)
+                batch_feature = sess.run(fc2_add, feed_dict={input_batch: bath, train_mode: False})
+                features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
+                print('batch_index: ' + str(batch_index) + '-' + str(batch_index + end_len - 1))
 
-            # save feature
-            features_csv_path = os.path.join(train_flags.output_test_features_path, features_csv_name)
-            np.save(features_csv_path, features)
-            labels_csv_path = os.path.join(train_flags.output_test_features_path, labels_csv_name)
-            np.save(labels_csv_path, labels)
-            orders_csv_path = os.path.join(train_flags.output_test_features_path, orders_csv_name)
-            np.save(orders_csv_path, orders)
-
-            coord.request_stop()
-            coord.join(threads)
+        # save feature
+        features_npy_path = os.path.join(train_flags.output_test_features_path, features_npy_name)
+        np.save(features_npy_path, features)
 
 
 if __name__ == '__main__':
