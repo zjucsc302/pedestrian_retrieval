@@ -7,11 +7,15 @@ from tensorflow.python.platform import gfile
 import csv
 from vgg_preprocessing import my_preprocess_train
 
-VGG_MEAN = [103.939, 116.779, 123.68]
+# VGG_MEAN = [103.939, 116.779, 123.68]
 # VGG_MEAN = [98.200, 98.805, 102.044]
+VGG_MEAN = [98.3, 98.5, 101.1]
 
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 112
+# IMAGE_HEIGHT = 224
+# IMAGE_WIDTH = 112
+
+IMAGE_HEIGHT = 230
+IMAGE_WIDTH = 80
 
 
 class Train_Flags():
@@ -29,21 +33,21 @@ class Train_Flags():
         self.output_check_point_path = os.path.join(self.current_file_path, 'result', 'check_point')
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.check_path_exist()
-        self.checkpoint_name = 'trip_improve_mine_noevg.ckpt'
+        self.checkpoint_name = 'trip_improve_mul.ckpt'
 
         self.max_step = 30001
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
-        self.train_batch_size = 16 # image = 3*train_batch_size
+        self.train_batch_size = 16  # image = 3*train_batch_size
         self.test_batch_size = 30
         self.random_train_input_flag = True
 
-        self.output_feature_dim = 1024
+        self.output_feature_dim = 800
         self.dropout = 0.9
         self.initial_learning_rate = 0.0001
         self.learning_rate_decay_factor = 0.9
         self.moving_average_decay = 0.999999
-        self.tau1 = 0.4
+        self.tau1 = 0.6
         self.tau2 = 0.01
         self.beta = 0.002
 
@@ -88,21 +92,21 @@ class Vgg19:
     #     """
     #     load variable from npy to build the VGG
     #
-    #     :param rgb: rgb image [batch, height, width, 3] values scaled [0, 1]
+    #     :param rgb: rgb image [batch, height, width, 3] values scaled [0.0, 255.0]
     #     :param train_test_mode: a bool tensor, usually a placeholder: if True, dropout will be turned on
     #     """
     #
     #     # Convert RGB to BGR
     #     red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
-    #     assert red.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
-    #     assert green.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
-    #     assert blue.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
+    #     assert red.get_shape().as_list()[1:] == [224, 112, 1]
+    #     assert green.get_shape().as_list()[1:] == [224, 112, 1]
+    #     assert blue.get_shape().as_list()[1:] == [224, 112, 1]
     #     bgr = tf.concat(axis=3, values=[
     #         blue - VGG_MEAN[0],
     #         green - VGG_MEAN[1],
     #         red - VGG_MEAN[2],
     #     ])
-    #     assert bgr.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 3]
+    #     assert bgr.get_shape().as_list()[1:] == [224, 112, 3]
     #
     #     self.conv1_1 = self.conv_layer(bgr, 3, 64, "conv1_1")
     #     self.conv1_2 = self.conv_layer(self.conv1_1, 64, 64, "conv1_2")
@@ -171,67 +175,129 @@ class Vgg19:
     #
     #     self.data_dict = None
 
-    # def build(self, rgb_scaled, test_rgb_scaled, train_test_mode):
+    # # def build(self, rgb_scaled, test_rgb_scaled, train_test_mode):
+    # def build(self, rgb_scaled, train_test_mode):
+    #     """
+    #     :param rgb: rgb image [batch, height, width, 3] values scaled [0.0, 255.0]
+    #     :param train_test_mode: a bool tensor, usually a placeholder: if True, dropout will be turned on
+    #     """
+    #
+    #     # Convert RGB to BGR
+    #     red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
+    #     assert red.get_shape().as_list()[1:] == [224, 112, 1]
+    #     assert green.get_shape().as_list()[1:] == [224, 112, 1]
+    #     assert blue.get_shape().as_list()[1:] == [224, 112, 1]
+    #     bgr = tf.concat(axis=3, values=[
+    #         blue - VGG_MEAN[0],
+    #         green - VGG_MEAN[1],
+    #         red - VGG_MEAN[2],
+    #     ])
+    #     assert bgr.get_shape().as_list()[1:] == [224, 112, 1]
+    #
+    #     self.conv1_0 = tf.layers.conv2d(
+    #         inputs=bgr,
+    #         filters=32,
+    #         kernel_size=[5, 5],
+    #         strides=(2, 2),
+    #         padding="same",
+    #         activation=tf.nn.relu,
+    #         name='conv1_0')
+    #
+    #     self.pool1_0 = tf.layers.max_pooling2d(
+    #         inputs=self.conv1_0,
+    #         pool_size=[2, 2],
+    #         strides=2,
+    #         name='pool1_0')
+    #
+    #     self.conv2_0 = tf.layers.conv2d(
+    #         inputs=self.pool1_0,
+    #         filters=32,
+    #         kernel_size=[5, 5],
+    #         strides=(1, 1),
+    #         padding="same",
+    #         activation=tf.nn.relu,
+    #         name='conv2_0')
+    #
+    #     self.pool2_0 = tf.layers.max_pooling2d(
+    #         inputs=self.conv2_0,
+    #         pool_size=[2, 2],
+    #         strides=2,
+    #         name='pool2')
+    #
+    #     self.pool2_flat = tf.reshape(self.pool2_0, [-1, 28 * 14 * 32])
+    #     # self.pool2_flat = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.pool2_flat, self.dropout), lambda: self.pool2_flat)
+    #
+    #     self.fc3_0 = tf.layers.dense(inputs=self.pool2_flat,
+    #                                  units=1024,
+    #                                  name='fc3_0')
+    #     self.fc3_0 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.fc3_0, self.dropout), lambda: self.fc3_0)
+    #
+    #     self.output = self.fc3_0
+    #
+    #     self.data_dict = None
+
     def build(self, rgb_scaled, train_test_mode):
         """
-        load variable from npy to build the VGG
-
-        :param rgb: rgb image [batch, height, width, 3] values scaled [0, 1]
+        :param rgb: rgb image [batch, height, width, 3] values scaled [0.0, 255.0]
         :param train_test_mode: a bool tensor, usually a placeholder: if True, dropout will be turned on
         """
 
         # Convert RGB to BGR
         red, green, blue = tf.split(axis=3, num_or_size_splits=3, value=rgb_scaled)
-        assert red.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
-        assert green.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
-        assert blue.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 1]
+        assert red.get_shape().as_list()[1:] == [230, 80, 1]
+        assert green.get_shape().as_list()[1:] == [230, 80, 1]
+        assert blue.get_shape().as_list()[1:] == [230, 80, 1]
         bgr = tf.concat(axis=3, values=[
             blue - VGG_MEAN[0],
             green - VGG_MEAN[1],
             red - VGG_MEAN[2],
         ])
-        assert bgr.get_shape().as_list()[1:] == [IMAGE_HEIGHT, IMAGE_WIDTH, 3]
+        assert bgr.get_shape().as_list()[1:] == [230, 80, 3]
 
-        self.conv1_0 = tf.layers.conv2d(
-            inputs=bgr,
-            filters=32,
-            kernel_size=[5, 5],
-            strides=(2, 2),
-            padding="same",
-            activation=tf.nn.relu,
-            name='conv1_0')
+        self.g_conv1 = tf.layers.conv2d(bgr, 32, [7, 7], 3, 'valid', activation=tf.nn.relu, name='g_conv1')
+        assert self.g_conv1.get_shape().as_list()[1:] == [75, 25, 32]
+        self.b_pool1 = tf.layers.max_pooling2d(self.g_conv1, [3, 3], 3, padding='same', name='b_pool1')
+        assert self.b_pool1.get_shape().as_list()[1:] == [25, 9, 32]
+        self.b_conv2 = tf.layers.conv2d(self.b_pool1, 32, [5, 5], 1, 'valid', activation=tf.nn.relu, name='b_conv2')
+        assert self.b_conv2.get_shape().as_list()[1:] == [21, 5, 32]
+        self.b_pool2 = tf.layers.max_pooling2d(self.b_conv2, [3, 3], 3, padding='same', name='b_pool2')
+        assert self.b_pool2.get_shape().as_list()[1:] == [7, 2, 32]
+        self.b_pool2_flat = tf.reshape(self.b_pool2, [-1, 7 * 2 * 32], 'b_pool2_flat')
+        self.b_fc = tf.layers.dense(inputs=self.b_pool2_flat, units=400, name='b_fc')
 
-        self.pool1_0 = tf.layers.max_pooling2d(
-            inputs=self.conv1_0,
-            pool_size=[2, 2],
-            strides=2,
-            name='pool1_0')
+        self.p1 = tf.slice(self.g_conv1, [0, 0, 0, 0], [-1, 18, 25, 32], 'p1')
+        self.p2 = tf.slice(self.g_conv1, [0, 19, 0, 0], [-1, 18, 25, 32], 'p2')
+        self.p3 = tf.slice(self.g_conv1, [0, 38, 0, 0], [-1, 18, 25, 32], 'p3')
+        self.p4 = tf.slice(self.g_conv1, [0, 57, 0, 0], [-1, 18, 25, 32], 'p4')
+        assert self.p1.get_shape().as_list()[1:] == [18, 25, 32]
 
-        self.conv2_0 = tf.layers.conv2d(
-            inputs=self.pool1_0,
-            filters=32,
-            kernel_size=[5, 5],
-            strides=(1, 1),
-            padding="same",
-            activation=tf.nn.relu,
-            name='conv2_0')
+        self.p1_conv1 = tf.layers.conv2d(self.p1, 32, [5, 5], 1, 'same', activation=tf.nn.relu, name='p1_conv1')
+        self.p2_conv1 = tf.layers.conv2d(self.p2, 32, [5, 5], 1, 'same', activation=tf.nn.relu, name='p2_conv1')
+        self.p3_conv1 = tf.layers.conv2d(self.p3, 32, [5, 5], 1, 'same', activation=tf.nn.relu, name='p3_conv1')
+        self.p4_conv1 = tf.layers.conv2d(self.p4, 32, [5, 5], 1, 'same', activation=tf.nn.relu, name='p4_conv1')
+        assert self.p1_conv1.get_shape().as_list()[1:] == [18, 25, 32]
 
-        self.pool2_0 = tf.layers.max_pooling2d(
-            inputs=self.conv2_0,
-            pool_size=[2, 2],
-            strides=2,
-            name='pool2')
+        self.p1_conv2 = tf.layers.conv2d(self.p1_conv1, 32, [3, 3], 1, 'valid', activation=tf.nn.relu, name='p1_conv2')
+        self.p2_conv2 = tf.layers.conv2d(self.p2_conv1, 32, [3, 3], 1, 'valid', activation=tf.nn.relu, name='p2_conv2')
+        self.p3_conv2 = tf.layers.conv2d(self.p3_conv1, 32, [3, 3], 1, 'valid', activation=tf.nn.relu, name='p3_conv2')
+        self.p4_conv2 = tf.layers.conv2d(self.p4_conv1, 32, [3, 3], 1, 'valid', activation=tf.nn.relu, name='p4_conv2')
+        assert self.p1_conv2.get_shape().as_list()[1:] == [16, 23, 32]
 
-        self.pool2_flat = tf.reshape(self.pool2_0, [-1, 28 * 14 * 32])
-        # self.fc3_0 = tf.layers.dense(inputs=self.pool2_flat, units=1024, activation=tf.nn.relu, name='fc3_0')
-        self.fc3_0 = tf.layers.dense(inputs=self.pool2_flat, units=1024, name='fc3_0')
-        # self.fc3_0 = self.fc_layer(self.pool2_0, 28 * 14 * 32, 512, "fc3_0")
-        # self.relu3_0 = tf.nn.relu(self.fc3_0)
-        self.fc3_0 = tf.cond(train_test_mode, lambda: tf.nn.dropout(self.fc3_0, self.dropout), lambda: self.fc3_0)
-        # self.fc4_0 = tf.layers.dense(inputs=self.fc3_0, units=512, activation=tf.nn.relu, name='fc4_0')
+        self.p1_conv2_flat = tf.reshape(self.p1_conv2, [-1, 16 * 23 * 32], 'p1_conv2_flat')
+        self.p2_conv2_flat = tf.reshape(self.p2_conv2, [-1, 16 * 23 * 32], 'p2_conv2_flat')
+        self.p3_conv2_flat = tf.reshape(self.p3_conv2, [-1, 16 * 23 * 32], 'p3_conv2_flat')
+        self.p4_conv2_flat = tf.reshape(self.p4_conv2, [-1, 16 * 23 * 32], 'p4_conv2_flat')
 
-        self.output = self.fc3_0
+        self.p1_fc = tf.layers.dense(inputs=self.p1_conv2_flat, units=100, name='p1_fc')
+        self.p2_fc = tf.layers.dense(inputs=self.p2_conv2_flat, units=100, name='p2_fc')
+        self.p3_fc = tf.layers.dense(inputs=self.p3_conv2_flat, units=100, name='p3_fc')
+        self.p4_fc = tf.layers.dense(inputs=self.p4_conv2_flat, units=100, name='p4_fc')
 
+        self.concat_fc = tf.concat([self.b_fc, self.p1_fc, self.p2_fc, self.p3_fc, self.p4_fc], 1, 'concat_fc')
+
+        # self.n_fc = tf.layers.dense(inputs=self.concat_fc, units=800, name='n_fc')
+
+        self.output = self.concat_fc
         self.data_dict = None
 
     # improved max triplet loss
@@ -246,9 +312,10 @@ class Vgg19:
         dist_ref_to_neg = tf.norm(split_refs - split_negs, 2, 1)
         dist_pos_to_neg = tf.norm(split_poss - split_negs, 2, 1)
 
-        max_dis_in_triplet = tf.maximum(dist_ref_to_pos - dist_ref_to_neg, dist_ref_to_pos - dist_pos_to_neg)
+        max_dis_in_triplet = tf.maximum(dist_ref_to_pos ** 2 - dist_ref_to_neg ** 2,
+                                        dist_ref_to_pos ** 2 - dist_pos_to_neg ** 2)
         inter_const = tf.maximum(max_dis_in_triplet + tau1, 0.0)
-        intra_const = tf.maximum(dist_ref_to_pos - tau2, 0.0)
+        intra_const = tf.maximum(dist_ref_to_pos ** 2 - tau2, 0.0)
         costs = inter_const + beta * intra_const
         tf.add_to_collection('losses', costs)
 
@@ -256,7 +323,7 @@ class Vgg19:
         tf.summary.scalar('intra_const_mean', tf.reduce_mean(dist_ref_to_pos))
         tf.summary.scalar('inter_const_min', tf.reduce_min(dist_ref_to_neg))
         tf.summary.scalar('intra_const_max', tf.reduce_max(dist_ref_to_pos))
-        accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
+        accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, dtype=tf.float32))
         tf.summary.scalar('accuracy', accuracy)
 
     # # improved triplet loss
@@ -279,7 +346,7 @@ class Vgg19:
     #     tf.summary.scalar('intra_const_mean', tf.reduce_mean(dist_ref_to_pos))
     #     tf.summary.scalar('inter_const_max', tf.reduce_max(dist_ref_to_neg))
     #     tf.summary.scalar('intra_const_max', tf.reduce_max(dist_ref_to_pos))
-    #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, "float"))
+    #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, dtype=tf.float32))
     #     tf.summary.scalar('accuracy', accuracy)
 
     def train_batch_inputs(self, dataset_csv_file_path, batch_size, random_flag):
@@ -297,15 +364,15 @@ class Vgg19:
             # input
             ref_image = tf.read_file(ref_image_path)
             ref = tf.image.decode_jpeg(ref_image, channels=3)
-            ref = tf.cast(ref, dtype=tf.int16)
+            ref = tf.cast(ref, dtype=tf.float32)
 
             pos_image = tf.read_file(pos_image_path)
             pos = tf.image.decode_jpeg(pos_image, channels=3)
-            pos = tf.cast(pos, dtype=tf.int16)
+            pos = tf.cast(pos, dtype=tf.float32)
 
             neg_image = tf.read_file(neg_image_path)
             neg = tf.image.decode_jpeg(neg_image, channels=3)
-            neg = tf.cast(neg, dtype=tf.int16)
+            neg = tf.cast(neg, dtype=tf.float32)
 
             # resized_ref = tf.image.resize_images(ref, (IMAGE_HEIGHT, IMAGE_WIDTH))
             # resized_pos = tf.image.resize_images(pos, (IMAGE_HEIGHT, IMAGE_WIDTH))
@@ -317,10 +384,9 @@ class Vgg19:
             resized_pos = tf.image.crop_to_bounding_box(resized_pos, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
             resized_neg = tf.image.crop_to_bounding_box(resized_neg, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
 
-            resized_ref = my_preprocess_train(resized_ref, IMAGE_HEIGHT, IMAGE_WIDTH)
-            resized_pos = my_preprocess_train(resized_pos, IMAGE_HEIGHT, IMAGE_WIDTH)
-            resized_neg = my_preprocess_train(resized_neg, IMAGE_HEIGHT, IMAGE_WIDTH)
-
+            resized_ref = my_preprocess_train(resized_ref, IMAGE_HEIGHT, IMAGE_WIDTH, p_flip=0.2)
+            resized_pos = my_preprocess_train(resized_pos, IMAGE_HEIGHT, IMAGE_WIDTH, p_flip=0.2)
+            resized_neg = my_preprocess_train(resized_neg, IMAGE_HEIGHT, IMAGE_WIDTH, p_flip=0.2)
 
             # generate batch
             trains = tf.train.batch(
@@ -346,7 +412,7 @@ class Vgg19:
             # input
             test_file = tf.read_file(test_image_path)
             test_image = tf.image.decode_jpeg(test_file, channels=3)
-            test_image = tf.cast(test_image, dtype=tf.int16)
+            test_image = tf.cast(test_image, dtype=tf.float32)
 
             # resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH))
             resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))

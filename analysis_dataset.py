@@ -79,8 +79,8 @@ def show_target_train_image(id):
         skimage.io.show()
 
 
-def xml_dict():
-    data = etree.parse(os.path.abspath('data/predict_result.xml'))
+def xml_dict(path):
+    data = etree.parse(os.path.abspath(path))
     # data = etree.parse(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/example_result.xml'))
 
     root = data.getroot()
@@ -96,8 +96,8 @@ def xml_dict():
     return predict_dict
 
 
-def show_predict_result(top_n):
-    predict_dict = xml_dict()
+def show_predict_result(path, top_n):
+    predict_dict = xml_dict(path)
     for probe, gallerys in predict_dict.iteritems():
         print('probe: % s' % probe)
         probe_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vq_path'), probe + '.jpg')
@@ -111,13 +111,13 @@ def show_predict_result(top_n):
             skimage.io.show()
 
 
-def show_target_predict_result(probe_image):
+def show_target_predict_result(path, probe_image):
     probe_image = str(probe_image)
     print('probe: % s' % probe_image)
     probe_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vq_path'), probe_image + '.jpg')
     skimage.io.imshow(skimage.io.imread(probe_path))
     skimage.io.show()
-    predict_dict = xml_dict()
+    predict_dict = xml_dict(path)
     for gallery in predict_dict[probe_image]:
         print('gallery: % s' % gallery)
         gallery_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vr_path'),
@@ -140,5 +140,8 @@ if __name__ == '__main__':
     # show_train_image(id_array=[1,1000,11],max_num=10)
     # show_target_train_image('137452')
 
-    show_predict_result(top_n=5)
-    # show_target_predict_result('323305')
+    # show_predict_result('data/predict_result.xml', top_n=5)
+    # show_target_predict_result('data/predict_result.xml', '323305')
+
+    show_predict_result('data/predict_result2.xml', top_n=5)
+    # show_target_predict_result('data/predict_result2.xml', '323305')
