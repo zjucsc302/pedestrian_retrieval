@@ -83,7 +83,7 @@ def train(retain_flag=True, start_step=0):
 
         summary_op = tf.summary.merge_all()
         summary_writer = tf.summary.FileWriter(train_flags.output_summary_path, graph=sess.graph)
-        saver = tf.train.Saver(tf.global_variables())
+        saver = tf.train.Saver()
 
         # retrain or continue
         if retain_flag:
@@ -131,44 +131,38 @@ def train(retain_flag=True, start_step=0):
                 checkpoint_path = os.path.join(train_flags.output_check_point_path, train_flags.checkpoint_name)
                 saver.save(sess, checkpoint_path, global_step=step)
 
-                # # do test: send every image in valid_gallery.csv and valid_probe.csv, then get feature vector
-                # # save all feature vector in npy
-                # def valid(gallery_flag):
-                #     # get feature batch
-                #     features_num = train_flags.valid_gallery_num if gallery_flag else train_flags.valid_probe_num
-                #     features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
-                #     labels = np.zeros(features_num, dtype=float)
-                #     batch_len = train_flags.test_batch_size
-                #     batch_name = 'valid_gallery_batch_index: ' if gallery_flag else 'valid_probe_batch_index: '
-                #     valid_label = valid_gallery_label if gallery_flag else valid_probe_label
-                #     end_len = features_num % batch_len
-                #     for batch_index in range(0, features_num - end_len, batch_len):
-                #         batch_feature, batch_label = sess.run([resnet_reid.output, valid_label],
-                #                                               feed_dict={input_batch: bath, train_mode: False,
-                #                                                          gallery_mode: gallery_flag})
-                #         features[batch_index: batch_index + batch_len, :] = batch_feature
-                #         labels[batch_index: batch_index + batch_len] = batch_label
-                #         print(batch_name + str(batch_index) + '-' + str(batch_index + batch_len - 1))
-                #     if end_len != 0:
-                #         batch_feature, batch_label = sess.run([resnet_reid.output, valid_label],
-                #                                               feed_dict={input_batch: bath, train_mode: False,
-                #                                                          gallery_mode: gallery_flag})
-                #         features[batch_index + batch_len: batch_index + batch_len + end_len, :] = batch_feature[
-                #                                                                                   :end_len]
-                #         labels[batch_index + batch_len: batch_index + batch_len + end_len] = batch_label[:end_len]
-                #         print(batch_name + str(batch_index + batch_len) + '-' + str(
-                #             batch_index + batch_len + end_len - 1))
-                #
-                #     # save feature
-                #     features_csv_name = 'valid_gallery_features_step-%d.npy' if gallery_flag else 'valid_probe_features_step-%d.npy'
-                #     features_csv_path = os.path.join(train_flags.output_test_features_path, features_csv_name % step)
-                #     np.save(features_csv_path, features)
-                #     labels_csv_name = 'valid_gallery_labels_step-%d.npy' if gallery_flag else 'valid_probe_labels_step-%d.npy'
-                #     labels_csv_path = os.path.join(train_flags.output_test_features_path, labels_csv_name % step)
-                #     np.save(labels_csv_path, labels)
-                #
-                # valid(False)
-                # valid(True)
+                # do test: send every image in valid_gallery.csv and valid_probe.csv, then get feature vector
+                # save all feature vector in npy
+                def valid(gallery_flag):
+                    # get feature batch
+                    features_num = train_flags.valid_gallery_num if gallery_flag else train_flags.valid_probe_num
+                    features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
+                    batch_len = train_flags.test_batch_size
+                    batch_name = 'valid_gallery_batch_index: ' if gallery_flag else 'valid_probe_batch_index: '
+                    end_len = features_num % batch_len
+                    for batch_index in range(0, features_num - end_len, batch_len):
+                        bath = resnet_reid.get_valid_image_batch(batch_index, batch_len, train_flags.id_image_path,
+                                                                 gallery_flag)
+                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False,
+                                                                                  gallery_mode: gallery_flag})
+                        features[batch_index: batch_index + batch_len, :] = batch_feature
+                        print(batch_name + str(batch_index) + '-' + str(batch_index + batch_len - 1))
+                    if end_len != 0:
+                        batch_index += batch_len
+                        bath = resnet_reid.get_valid_image_batch(batch_index, batch_len, train_flags.id_image_path,
+                                                                 gallery_flag)
+                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False,
+                                                                         gallery_mode: gallery_flag})
+                        features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
+                        print(batch_name + str(batch_index) + '-' + str(batch_index + end_len - 1))
+
+                    # save feature
+                    features_csv_name = 'valid_gallery_features_step-%d.npy' if gallery_flag else 'valid_probe_features_step-%d.npy'
+                    features_csv_path = os.path.join(train_flags.output_test_features_path, features_csv_name % step)
+                    np.save(features_csv_path, features)
+
+                valid(False)
+                valid(True)
 
         coord.request_stop()
         coord.join(threads)
@@ -270,5 +264,5 @@ if __name__ == '__main__':
     # res = ResnetReid()
     # print res.get_train_image_batch(train_flags.id_image_path, train_flags.id_image_train_num, train_flags.return_id_num, train_flags.image_num_every_id)
     # print res.get_train_image_batch(train_flags.id_image_path, train_flags.id_image_train_num, train_flags.return_id_num, train_flags.image_num_every_id)
-
+    # print res.get_valid_image_batch(0, 72, train_flags.id_image_path, gallery_flag=False)
 
