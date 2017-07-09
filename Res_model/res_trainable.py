@@ -35,7 +35,7 @@ class Train_Flags():
         self.max_step = 30001
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
-        self.test_batch_size = 40
+        self.test_batch_size = 40 # do not change 40!!!
         self.change_file_step = 200
 
         self.output_feature_dim = 128
