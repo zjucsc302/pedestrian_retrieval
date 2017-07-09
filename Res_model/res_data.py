@@ -9,6 +9,7 @@ import cPickle as pickle
 import numpy as np
 import skimage.io
 import skimage.transform
+import math
 from res_trainable import IMAGE_HEIGHT, IMAGE_WIDTH
 
 
@@ -114,19 +115,6 @@ def get_pos_image(ref_image, ref_id, info_dict):
     return pos_image
 
 
-def get_triplet_pair(id_path, circle_num):
-    dataset_triplet_pair = []
-    for circle_number in range(circle_num):
-        temp_id_path = dict(id_path)
-        for id, paths in temp_id_path.iteritems():
-            # reference image, max_num = 4
-            for ref_image in (paths if len(paths) < 5 else random.sample(paths, 4)):
-                pos_image = get_pos_image(ref_image, id, temp_id_path)
-                neg_image = get_neg_image(id, temp_id_path)
-                dataset_triplet_pair.append([ref_image, pos_image, neg_image])
-    return dataset_triplet_pair
-
-
 def generate_train_eval(dataset_triplet_pair, csv_path):
     order = 0
     with open(csv_path, 'w') as output:
@@ -149,28 +137,6 @@ def generate_test(gallery_probe, glabels_plabels, test_batch):
             output.write("%s,%s" % (image_path, 'Repeat for batch input'))
             output.write("\n")
             test_num = test_num + 1
-
-
-def generate_classify_csv(img_dict, num, train_path_csv, valid_path_csv):
-    with open(train_path_csv, 'w') as train_output:
-        with open(valid_path_csv, 'w') as valid_output:
-            label = 0
-            for id in img_dict.keys()[:num]:
-                imgs = img_dict[id]
-                # choice a image and put it into valid
-                img = random.choice(imgs)
-                imgs.pop(imgs.index(img))
-                valid_output.write("%s,%s" % (img, label))
-                valid_output.write("\n")
-                if len(imgs) > 3:
-                    img = random.choice(imgs)
-                    imgs.pop(imgs.index(img))
-                    valid_output.write("%s,%s" % (img, label))
-                    valid_output.write("\n")
-                for img in (imgs if len(imgs) < 41 else random.sample(imgs, 40)):
-                    train_output.write("%s,%s" % (img, label))
-                    train_output.write("\n")
-                label += 1
 
 
 def generate_path_csv(image_path_list, path_csv):
@@ -256,23 +222,22 @@ def get_id_path_dict(file_path):
     return id_path
 
 
-def generate_id_image_file(id_path_dict, file_path, id_num_in_part, max_image_num_in_one_id):
+def generate_id_image_file(id_path_dict, file_path, id_num_in_part):
     print('generate_id_image_file()')
     id_num = len([id for id in id_path_dict])
     part_num = id_num / id_num_in_part
     print('id_num: %s' % id_num)
     print('id_num_in_part: %s' % id_num_in_part)
     print('part_num: %s' % part_num)
-    print('max_image_num_in_one_id: %s' % max_image_num_in_one_id)
 
     id_image_dict = {}
     id_count = 0
     id_part_count = 0
+    image_count = 0
+
     for id in id_path_dict:
         images = []
-        paths = id_path_dict[id]
-        paths = paths[:min([max_image_num_in_one_id, len(paths)])]
-        for path in paths:
+        for path in id_path_dict[id]:
             image = skimage.io.imread(path)
             image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH)) * 255.0
             image = image.astype(np.uint8)
@@ -282,6 +247,8 @@ def generate_id_image_file(id_path_dict, file_path, id_num_in_part, max_image_nu
             # skimage.io.imshow(image)
             # skimage.io.show()
             images.append(image)
+            # image_count += 1
+            # print image_count
         id_image_dict[id] = images
 
         id_count += 1
@@ -295,6 +262,34 @@ def generate_id_image_file(id_path_dict, file_path, id_num_in_part, max_image_nu
             id_part_count += 1
 
 
+def generate_image_file(image_path_list, file_path, image_num_in_part):
+    print('generate_image_file()')
+    image_num = len(image_path_list)
+    print('image num: %s' % image_num)
+    print('image num in part: %s' % image_num_in_part)
+    part_num = int(math.ceil(1.0 * image_num / image_num_in_part))
+    print('part num: %s' % part_num)
+
+    images = []
+    path_count = 0
+    for i, path in enumerate(image_path_list):
+        image = skimage.io.imread(path)
+        image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH)) * 255.0
+        image = image.astype(np.uint8)
+        images.append(image)
+        if (i + 1) % image_num_in_part == 0:
+            pfile = file_path % (IMAGE_HEIGHT, IMAGE_WIDTH, path_count)
+            print('generate ' + pfile)
+            with open(pfile, "wb") as f:
+                pickle.dump(images, f)
+            images = []
+            path_count += 1
+
+
+def generate_label_file(nplabels, file_path):
+    np.save(os.path.abspath(file_path), nplabels)
+
+
 def generate_path_label():
     print('generate_path_label()')
     # import train and valid path
@@ -304,13 +299,28 @@ def generate_path_label():
     X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.04, random_state=1)
     X_train = array2dict(X_train_array)
     X_valid = array2dict(X_valid_array)
-    # generate train and valid image
-    generate_id_image_file(X_train, '../data/id_image/id_image_train_%s_%s_%s.plk', id_num_in_part=40,
-                           max_image_num_in_one_id=100)
-    generate_id_image_file(X_valid, '../data/id_image/id_image_valid_%s_%s_%s.plk', id_num_in_part=40,
-                           max_image_num_in_one_id=100)
+    # generate train file
+    generate_id_image_file(X_train, '../data/id_image/id_image_train_%s_%s_%s.pkl', id_num_in_part=100)
+    # generate valid file
+    probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
+    generate_label_file(plabels_valid, './result/test_features/valid_probe_labels.npy')
+    generate_label_file(glabels_valid, './result/test_features/valid_gallery_labels.npy')
+    generate_image_file(probe_valid, '../data/id_image/valid_probe_image_%s_%s_%s.pkl', len(probe_valid))
+    generate_image_file(gallery_valid, '../data/id_image/valid_gallery_image_%s_%s_%s.pkl', len(gallery_valid))
+    generate_path_label_order_csv('../data/valid_probe.csv', probe_valid, plabels_valid) # just for count
+    generate_path_label_order_csv('../data/valid_gallery.csv', gallery_valid, glabels_valid) # just for count
 
 
+    #
+    # generate_image_label_file(probe_valid, plabels_valid, '../data//id_image_train_%s_%s_%s.pkl')
+    #
+    #
+    #
+    #
+    # generate_path_label_order_csv('data/valid_probe.csv', probe_valid, plabels_valid)
+    # generate_path_label_order_csv('data/valid_gallery.csv', gallery_valid, glabels_valid)
+    # print('probe_valid: ' + str(len(probe_valid)))
+    # print('gallery_valid: ' + str(len(gallery_valid)))
 
 
 
