@@ -215,7 +215,7 @@ def generate_image_file(image_path_list, file_path, image_num_in_part):
         image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH)) * 255.0
         image = image.astype(np.uint8)
         images.append(image)
-        if (i + 1) % image_num_in_part == 0:
+        if (i + 1) % image_num_in_part == 0 or (i + 1) == image_num:
             pfile = file_path % (IMAGE_HEIGHT, IMAGE_WIDTH, path_count)
             print('generate ' + pfile)
             with open(pfile, "wb") as f:
