@@ -4,7 +4,7 @@ import os
 from tensorflow.python.platform import gfile
 import csv
 # from pedestrian_retrieval.VGG_model.vgg_preprocessing import my_preprocess_train
-
+import math
 import random
 import cPickle as pickle
 
@@ -39,13 +39,14 @@ class Train_Flags():
         self.test_batch_size = 30
         self.change_file_step = 1000
 
-        self.output_feature_dim = 800
+        self.output_feature_dim = 128
         self.dropout = 0.9
         self.initial_learning_rate = 0.0001
         self.learning_rate_decay_factor = 0.9
         self.moving_average_decay = 0.999999
-        self.return_id_num = 4
+        self.return_id_num = 18
         self.image_num_every_id = 4
+        self.train_batch_size = self.return_id_num * self.image_num_every_id
         # self.tau1 = 0.6
         # self.tau2 = 0.01
         # self.beta = 0.002
@@ -206,17 +207,17 @@ class ResnetReid:
     #     tf.summary.scalar('accuracy', accuracy)
 
 
-    def get_train_image_batch(self, file_path, file_num, return_id_num, image_num_every_id, change_file = False):
+    def get_train_image_batch(self, folder_path, file_num, return_id_num, image_num_every_id, change_file = False):
         try:
             self.id_image_0 is None
         except:
-            print('first load')
+            print('train image first load')
             change_file = True
         if change_file:
             two_file_number = random.sample(range(file_num), 2)
-            file_path_0 = os.path.join(file_path,
+            file_path_0 = os.path.join(folder_path,
                                       'id_image_train_%s_%s_%s.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH, two_file_number[0]))
-            file_path_1 = os.path.join(file_path,
+            file_path_1 = os.path.join(folder_path,
                                       'id_image_train_%s_%s_%s.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH, two_file_number[1]))
             with open(file_path_0, "rb") as f:
                 self.id_image_0 = pickle.load(f)
@@ -242,6 +243,39 @@ class ResnetReid:
         images = images.astype(np.float32) / 255
         # images: [0.0 1.0]
         return images
+
+    def get_valid_image_batch(self, batch_index, batch_size, folder_path, gallery_flag):
+        if gallery_flag:
+            try:
+                self.valid_gallery_image is None
+            except:
+                print('valid gallery image first load')
+                file_path = os.path.join(folder_path, 'valid_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                with open(file_path, "rb") as f:
+                    self.valid_gallery_image = pickle.load(f)
+                    for i in range(batch_size):
+                        self.valid_gallery_image.append(self.valid_gallery_image[0])
+
+            images = np.array(self.valid_gallery_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            images = images.astype(np.float32) / 255
+            # images: [0.0 1.0]
+            return images
+        else:
+            try:
+                self.valid_probe_image is None
+            except:
+                print('valid probe image first load')
+                file_path = os.path.join(folder_path, 'valid_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                with open(file_path, "rb") as f:
+                    self.valid_probe_image = pickle.load(f)
+                    for i in range(batch_size):
+                        self.valid_probe_image.append(self.valid_probe_image[0])
+
+            images = np.array(self.valid_probe_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            images = images.astype(np.float32) / 255
+            # images: [0.0 1.0]
+            return images
+
 
     def train_batch_inputs(self, dataset_csv_file_path, batch_size, random_flag):
 
@@ -323,39 +357,3 @@ class ResnetReid:
                 capacity=1 + batch_size
             )
             return tests
-
-    def classify_batch_inputs(self, dataset_test_csv_file_path, batch_size):
-        if (os.path.isfile(dataset_test_csv_file_path) != True):
-            raise ValueError('No data files found for this test dataset')
-
-        filename_queue = tf.train.string_input_producer([dataset_test_csv_file_path], shuffle=False)
-        reader = tf.TextLineReader()
-        _, serialized_example = reader.read(filename_queue)
-        image_path, image_label = tf.decode_csv(serialized_example,[["image_path"], ["mage_label"]])
-
-        # input
-        file = tf.read_file(image_path)
-        image = tf.image.decode_jpeg(file, channels=3)
-        image = tf.cast(image, dtype=tf.float32)
-
-        # resized_test = tf.image.resize_images(test_image, (IMAGE_HEIGHT, IMAGE_WIDTH))
-        resized_image = tf.image.resize_images(image, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4))
-        resized_image = tf.image.crop_to_bounding_box(resized_image, 0, IMAGE_WIDTH / 8, IMAGE_HEIGHT, IMAGE_WIDTH)
-
-        onehot_label = tf.one_hot(tf.cast(image_label, dtype=tf.int16), 1000)
-
-        # generate batch
-        batch = tf.train.batch(
-            [resized_image, onehot_label],
-            batch_size=batch_size,
-            capacity=1 + batch_size
-        )
-        return batch
-
-    def classify_train_batch_inputs(self, dataset_test_csv_file_path, batch_size):
-        with tf.name_scope('classify_train_batch_inputs'):
-            return  self.classify_batch_inputs(dataset_test_csv_file_path, batch_size)
-
-    def classify_valid_batch_inputs(self, dataset_test_csv_file_path, batch_size):
-        with tf.name_scope('classify_valid_batch_inputs'):
-            return  self.classify_batch_inputs(dataset_test_csv_file_path, batch_size)
