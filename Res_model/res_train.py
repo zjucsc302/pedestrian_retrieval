@@ -135,15 +135,13 @@ def train(retain_flag=True, start_step=0):
                     batch_name = 'valid_gallery_batch_index: ' if gallery_flag else 'valid_probe_batch_index: '
                     end_len = features_num % batch_len
                     for batch_index in range(0, features_num - end_len, batch_len):
-                        bath = resnet_reid.get_valid_image_batch(batch_index, batch_len, train_flags.id_image_path,
-                                                                 gallery_flag)
+                        bath = resnet_reid.get_test_image_batch(batch_index, batch_len, train_flags.id_image_path, 'valid', gallery_flag)
                         batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
                         features[batch_index: batch_index + batch_len, :] = batch_feature
                         print(batch_name + str(batch_index) + '-' + str(batch_index + batch_len - 1))
                     if end_len != 0:
                         batch_index += batch_len
-                        bath = resnet_reid.get_valid_image_batch(batch_index, batch_len, train_flags.id_image_path,
-                                                                 gallery_flag)
+                        bath = resnet_reid.get_test_image_batch(batch_index, batch_len, train_flags.id_image_path, 'valid', gallery_flag)
                         batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
                         features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
                         print(batch_name + str(batch_index) + '-' + str(batch_index + end_len - 1))
@@ -160,71 +158,72 @@ def train(retain_flag=True, start_step=0):
 
 def generate_features(predict_flag, gallery_flag):
     print('generate_features(%s, %s)' % (predict_flag, gallery_flag))
-    # define model just for using function
-    resnet_reid = ResnetReid()
 
-    # define parameter
-    if gallery_flag and predict_flag:
-        input_path = train_flags.dataset_predict_gallery_csv_file_path
-        features_num = train_flags.predict_gallery_num
-        features_npy_name = 'predict_gallery_features.npy'
-        get_image_batch = resnet_reid.get_predict_image_batch
-    elif gallery_flag and (not predict_flag):
-        input_path = train_flags.dataset_train_200_gallery_csv_file_path
-        features_num = train_flags.train_200_gallery_num
-        features_npy_name = 'train_200_gallery_features.npy'
-        get_image_batch = resnet_reid.get_train_200_image_batch
-    elif (not gallery_flag) and predict_flag:
-        input_path = train_flags.dataset_predict_probe_csv_file_path
-        features_num = train_flags.predict_probe_num
-        features_npy_name = 'predict_probe_features.npy'
-        get_image_batch = resnet_reid.get_predict_image_batch
-    else:
-        input_path = train_flags.dataset_train_200_probe_csv_file_path
-        features_num = train_flags.train_200_probe_num
-        features_npy_name = 'train_200_probe_features.npy'
-        get_image_batch = resnet_reid.get_train_200_image_batch
+    with tf.Graph().as_default():
+        # define placeholder
+        train_mode = tf.placeholder(tf.bool, name='train_mode')
+        input_batch = tf.placeholder(tf.float32, [None, IMAGE_HEIGHT, IMAGE_WIDTH, 3], 'input_batch')
 
-    # load model
-    with open('result/check_point/checkpoint','r') as f:
-        line0 = f.readlines()
-        model_path = line0[0].split('"')[1] + '.meta'
-    saver = tf.train.import_meta_graph(model_path)
+        # define model
+        resnet_reid = ResnetReid()
+        with slim.arg_scope(resnet_arg_scope()):
+            # input_batch: [batch, height, width, 3] values scaled [0.0, 1.0], dtype = tf.float32
+            resnet_avg_pool, end_points = resnet_v2_50(input_batch, is_training=False, global_pool=True)
+        resnet_reid.build(resnet_avg_pool, train_mode)
 
-    # We can now access the default graph where all our metadata has been loaded
-    graph = tf.get_default_graph()
+        # define sess
+        with tf.Session() as sess:
+            sess.run(tf.global_variables_initializer())
 
-    # Finally we can retrieve tensors, operations, etc.
-    train_mode = graph.get_tensor_by_name('train_mode:0')
-    input_batch = graph.get_tensor_by_name('input_batch:0')
-    fc2_add = graph.get_tensor_by_name('fc2_add:0')
-    with tf.Session() as sess:
-        # load checkpoint
-        ckpt = tf.train.get_checkpoint_state(train_flags.output_check_point_path)
-        if ckpt and ckpt.model_checkpoint_path:
-            saver.restore(sess, ckpt.model_checkpoint_path)
-            print('load checkpoint')
+            # load checkpoint
+            saver = tf.train.Saver()
+            ckpt = tf.train.get_checkpoint_state(train_flags.output_check_point_path)
+            if ckpt and ckpt.model_checkpoint_path:
+                saver.restore(sess, ckpt.model_checkpoint_path)
+                print('load checkpoint')
 
-        print('start generate features')
-        # get feature batch
-        features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
-        batch_len = train_flags.test_batch_size
-        end_len = features_num % batch_len
-        for batch_index in range(0, features_num - end_len, batch_len):
-            bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, gallery_flag)
-            batch_feature = sess.run(fc2_add, feed_dict={input_batch: bath, train_mode: False})
-            features[batch_index: batch_index + batch_len, :] = batch_feature
-            print('batch_index: ' + str(batch_index) + '-' + str(batch_index + batch_len - 1))
-            if end_len != 0:
-                batch_index += batch_len
-                bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, gallery_flag)
-                batch_feature = sess.run(fc2_add, feed_dict={input_batch: bath, train_mode: False})
-                features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
-                print('batch_index: ' + str(batch_index) + '-' + str(batch_index + end_len - 1))
+            # define parameter
+            if gallery_flag and predict_flag:
+                features_num = train_flags.predict_gallery_num
+                features_npy_name = 'predict_gallery_features.npy'
+                get_image_batch = resnet_reid.get_predict_image_batch
+                file_title = 'predict'
+            elif gallery_flag and (not predict_flag):
+                features_num = train_flags.train_200_gallery_num
+                features_npy_name = 'train_200_gallery_features.npy'
+                get_image_batch = resnet_reid.get_test_image_batch
+                file_title = 'train_200'
+            elif (not gallery_flag) and predict_flag:
+                features_num = train_flags.predict_probe_num
+                features_npy_name = 'predict_probe_features.npy'
+                get_image_batch = resnet_reid.get_predict_image_batch
+                file_title = 'predict'
+            else:
+                features_num = train_flags.train_200_probe_num
+                features_npy_name = 'train_200_probe_features.npy'
+                get_image_batch = resnet_reid.get_test_image_batch
+                file_title = 'train_200'
 
-        # save feature
-        features_npy_path = os.path.join(train_flags.output_test_features_path, features_npy_name)
-        np.save(features_npy_path, features)
+            print('start generate features')
+            # get feature batch
+            features = np.zeros((features_num, train_flags.output_feature_dim), dtype=float)
+            batch_len = train_flags.test_batch_size
+            end_len = features_num % batch_len
+            for batch_index in range(0, features_num - end_len, batch_len):
+                bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
+                batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
+                features[batch_index: batch_index + batch_len, :] = batch_feature
+                print('batch_index: ' + str(batch_index) + '-' + str(batch_index + batch_len - 1))
+                if end_len != 0:
+                    batch_index += batch_len
+                    bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
+                    batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
+                    features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
+                    print('batch_index: ' + str(batch_index) + '-' + str(batch_index + end_len - 1))
+
+            # save feature
+            features_npy_path = os.path.join(train_flags.output_test_features_path, features_npy_name)
+            np.save(features_npy_path, features)
 
 
 if __name__ == '__main__':
