@@ -4,7 +4,6 @@ import os
 from tensorflow.python.platform import gfile
 import csv
 # from pedestrian_retrieval.VGG_model.vgg_preprocessing import my_preprocess_train
-import math
 import random
 import cPickle as pickle
 
@@ -36,7 +35,7 @@ class Train_Flags():
         self.max_step = 30001
         self.num_per_epoch = 10000
         self.num_epochs_per_decay = 30
-        self.test_batch_size = 30
+        self.test_batch_size = 40
         self.change_file_step = 200
 
         self.output_feature_dim = 128
@@ -242,13 +241,13 @@ class ResnetReid:
         # images: [0.0 1.0]
         return images
 
-    def get_valid_image_batch(self, batch_index, batch_size, folder_path, gallery_flag):
+    def get_test_image_batch(self, batch_index, batch_size, folder_path, file_title, gallery_flag):
         if gallery_flag:
             try:
                 self.valid_gallery_image is None
             except:
-                print('valid gallery image first load')
-                file_path = os.path.join(folder_path, 'valid_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                print(file_title + ' gallery image first load')
+                file_path = os.path.join(folder_path, file_title + '_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
                 with open(file_path, "rb") as f:
                     self.valid_gallery_image = pickle.load(f)
                     for i in range(batch_size):
@@ -262,40 +261,8 @@ class ResnetReid:
             try:
                 self.valid_probe_image is None
             except:
-                print('valid probe image first load')
-                file_path = os.path.join(folder_path, 'valid_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
-                with open(file_path, "rb") as f:
-                    self.valid_probe_image = pickle.load(f)
-                    for i in range(batch_size):
-                        self.valid_probe_image.append(self.valid_probe_image[0])
-
-            images = np.array(self.valid_probe_image[batch_index: batch_index + batch_size], dtype=np.uint8)
-            images = images.astype(np.float32) / 255
-            # images: [0.0 1.0]
-            return images
-
-    def get_train_200_image_batch(self, batch_index, batch_size, folder_path, gallery_flag):
-        if gallery_flag:
-            try:
-                self.valid_gallery_image is None
-            except:
-                print('train 200 gallery image first load')
-                file_path = os.path.join(folder_path, 'train_200_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
-                with open(file_path, "rb") as f:
-                    self.valid_gallery_image = pickle.load(f)
-                    for i in range(batch_size):
-                        self.valid_gallery_image.append(self.valid_gallery_image[0])
-
-            images = np.array(self.valid_gallery_image[batch_index: batch_index + batch_size], dtype=np.uint8)
-            images = images.astype(np.float32) / 255
-            # images: [0.0 1.0]
-            return images
-        else:
-            try:
-                self.valid_probe_image is None
-            except:
-                print('train 200 probe image first load')
-                file_path = os.path.join(folder_path, 'train_200_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                print(file_title + ' probe image first load')
+                file_path = os.path.join(folder_path, file_title + '_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
                 with open(file_path, "rb") as f:
                     self.valid_probe_image = pickle.load(f)
                     for i in range(batch_size):
