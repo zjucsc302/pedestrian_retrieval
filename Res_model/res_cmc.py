@@ -326,13 +326,13 @@ def pick_top(distmat, contain_top_n):
     return distmat
 
 
-def train_1000_mAP(normalize_flag=False, contain_top_n=None):
-    print('train_1000_mAP(normalize_flag=%s, contain_top_n=%s)' % (normalize_flag, contain_top_n))
+def train_200_mAP(normalize_flag=False, contain_top_n=None):
+    print('train_200_mAP(normalize_flag=%s, contain_top_n=%s)' % (normalize_flag, contain_top_n))
     # valid mAP
-    g = np.load('VGG_model/result/test_features/train_1000_gallery_features.npy')
-    g_labels = np.load('VGG_model/result/test_features/train_1000_gallery_labels.npy')
-    p = np.load('VGG_model/result/test_features/train_1000_probe_features.npy')
-    p_labels = np.load('VGG_model/result/test_features/train_1000_probe_labels.npy')
+    g = np.load('result/test_features/train_200_gallery_features.npy')
+    g_labels = np.load('result/test_features/train_200_gallery_labels.npy')
+    p = np.load('result/test_features/train_200_probe_features.npy')
+    p_labels = np.load('result/test_features/train_200_probe_labels.npy')
     if normalize_flag:
         g = normalize(g)
         p = normalize(p)
@@ -340,14 +340,14 @@ def train_1000_mAP(normalize_flag=False, contain_top_n=None):
     if contain_top_n is not None:
         distmat = pick_top(distmat, contain_top_n=contain_top_n)
     map1, map2 = mAP(distmat, glabels=g_labels, plabels=p_labels, top_n=200)
-    print('train_1000 map: %f, %f ' % (map1, map2))
+    print('train_200 map: %f, %f ' % (map1, map2))
 
 
 def valid_mAP(normalize_flag=False, contain_top_n=None):
     print('valid_mAP(normalize_flag=%s, contain_top_n=%s)' % (normalize_flag, contain_top_n))
     min_step = 100000000
     max_step = 0
-    for root, dirs, files in os.walk(os.path.abspath('./VGG_model/result/test_features')):
+    for root, dirs, files in os.walk(os.path.abspath('./result/test_features')):
         for name in files:
             if 'valid_probe_features_step-' in name:
                 step = int(name.split('.')[0].split('-')[-1])
@@ -358,11 +358,11 @@ def valid_mAP(normalize_flag=False, contain_top_n=None):
     map2_all = []
     # valid mAP
     for step in range(min_step, max_step + 1, 5000):
-        g = np.load('VGG_model/result/test_features/valid_gallery_features_step-%d.npy' % step)
+        g = np.load('result/test_features/valid_gallery_features_step-%d.npy' % step)
         print('step: %s, g_feature abs mean : %s' % (step, np.mean(np.abs(g))))
-        g_labels = np.load('VGG_model/result/test_features/valid_gallery_labels_step-%d.npy' % step)
-        p = np.load('VGG_model/result/test_features/valid_probe_features_step-%d.npy' % step)
-        p_labels = np.load('VGG_model/result/test_features/valid_probe_labels_step-%d.npy' % step)
+        g_labels = np.load('result/test_features/valid_gallery_labels.npy')
+        p = np.load('result/test_features/valid_probe_features_step-%d.npy' % step)
+        p_labels = np.load('result/test_features/valid_probe_labels.npy')
         if normalize_flag:
             g = normalize(g)
             p = normalize(p)
@@ -482,9 +482,9 @@ def generate_top_predict_csv():
 
 
 if __name__ == '__main__':
-    # train_1000_mAP(normalize_flag=True)
-    # valid_mAP(normalize_flag=True)
-    generate_first_predict_xml(normalize_flag=True)
+    # train_200_mAP(normalize_flag=False)
+    valid_mAP(normalize_flag=False)
+    # generate_first_predict_xml(normalize_flag=False)
     # have to
     # 1. delete xml's first line(<?xml version="1.0"?>)
     # 2. delete last line(nothing in last line)

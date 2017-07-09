@@ -43,7 +43,7 @@ def train(retain_flag=True, start_step=0):
         gallery_mode = tf.placeholder(tf.bool)  # gallery or probe
 
         # define model
-        vgg = Vgg19(vgg19_npy_path='./vgg19.npy',dropout=train_flags.dropout)
+        vgg = Vgg19(dropout=train_flags.dropout)
 
         # define input data
         refs_batch, poss_batch, negs_batch, train_orders_batch = vgg.train_batch_inputs(
@@ -73,8 +73,7 @@ def train(retain_flag=True, start_step=0):
                                         decay_steps,
                                         train_flags.learning_rate_decay_factor,
                                         staircase=True)
-        vars_to_optimize = [v for v in tf.trainable_variables() if
-                            (v.name.startswith('fc') | v.name.startswith('conv'))]
+        vars_to_optimize = [v for v in tf.trainable_variables() if (('fc' in v.name) | ('conv' in v.name))]
         print '\nvariables to optimize'
         for v in vars_to_optimize:
             print v.name, v.get_shape().as_list()
