@@ -263,10 +263,10 @@ def generate_path_label():
     print('gallery_valid: ' + str(len(gallery_valid)))
     # generate predict csv
     gallery_predict, probe_predict = generate_predict_path()
-    generate_image_file(probe_predict, '../data/id_image/predict_probe_image_%s_%s_%s.pkl', 2000)
-    generate_image_file(gallery_predict, '../data/id_image/predict_gallery_image_%s_%s_%s.pkl', 2000)
-    generate_path_label_order_csv('../data/predict_probe.csv', probe_predict)
-    generate_path_label_order_csv('../data/predict_gallery.csv', gallery_predict)
+    generate_image_file(probe_predict, '../data/id_image/predict_probe_image_%s_%s_%s.pkl', 2000)# do not change 2000!!!
+    generate_image_file(gallery_predict, '../data/id_image/predict_gallery_image_%s_%s_%s.pkl', 2000)# do not change 2000!!!
+    generate_path_label_order_csv('../data/predict_probe.csv', probe_predict)  # just for count
+    generate_path_label_order_csv('../data/predict_gallery.csv', gallery_predict)  # just for count
     print('prob_predict: ' + str(len(probe_predict)))
     print('gallery_predict: ' + str(len(gallery_predict)))
     # generate predict name csv
