@@ -214,12 +214,12 @@ def generate_features(predict_flag, gallery_flag):
                 batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
                 features[batch_index: batch_index + batch_len, :] = batch_feature
                 print('batch_index: ' + str(batch_index) + '-' + str(batch_index + batch_len - 1))
-                if end_len != 0:
-                    batch_index += batch_len
-                    bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
-                    batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
-                    features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
-                    print('batch_index: ' + str(batch_index) + '-' + str(batch_index + end_len - 1))
+            if end_len != 0:
+                batch_index += batch_len
+                bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
+                batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
+                features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
+                print('batch_index: ' + str(batch_index) + '-' + str(batch_index + end_len - 1))
 
             # save feature
             features_npy_path = os.path.join(train_flags.output_test_features_path, features_npy_name)
