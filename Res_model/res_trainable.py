@@ -244,31 +244,107 @@ class ResnetReid:
     def get_test_image_batch(self, batch_index, batch_size, folder_path, file_title, gallery_flag):
         if gallery_flag:
             try:
-                self.valid_gallery_image is None
+                self.test_gallery_image is None
             except:
                 print(file_title + ' gallery image first load')
                 file_path = os.path.join(folder_path, file_title + '_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
                 with open(file_path, "rb") as f:
-                    self.valid_gallery_image = pickle.load(f)
+                    self.test_gallery_image = pickle.load(f)
                     for i in range(batch_size):
-                        self.valid_gallery_image.append(self.valid_gallery_image[0])
+                        self.test_gallery_image.append(self.test_gallery_image[0])
 
-            images = np.array(self.valid_gallery_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            images = np.array(self.test_gallery_image[batch_index: batch_index + batch_size], dtype=np.uint8)
             images = images.astype(np.float32) / 255
             # images: [0.0 1.0]
             return images
         else:
             try:
-                self.valid_probe_image is None
+                self.test_probe_image is None
             except:
                 print(file_title + ' probe image first load')
                 file_path = os.path.join(folder_path, file_title + '_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
                 with open(file_path, "rb") as f:
-                    self.valid_probe_image = pickle.load(f)
+                    self.test_probe_image = pickle.load(f)
                     for i in range(batch_size):
-                        self.valid_probe_image.append(self.valid_probe_image[0])
+                        self.test_probe_image.append(self.test_probe_image[0])
 
-            images = np.array(self.valid_probe_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            images = np.array(self.test_probe_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            images = images.astype(np.float32) / 255
+            # images: [0.0 1.0]
+            return images
+
+    def get_predict_image_batch(self, batch_index, batch_size, folder_path, file_title, gallery_flag):
+        if gallery_flag:
+            try:
+                self.predict_gallery_image is None
+            except:
+                print(file_title + ' gallery image first load')
+                self.file_count = 0
+                for root, dirs, files in os.walk(folder_path):
+                    self.file_num = sum([1 if 'predict_gallery_image' in file_name else 0 for file_name in files])
+                file_path = os.path.join(folder_path, file_title + '_gallery_image_%s_%s_%s.pkl' % (
+                IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
+                with open(file_path, "rb") as f:
+                    self.predict_gallery_image = pickle.load(f)
+                print('load: %s' % file_path)
+                self.image_num_in_part = len(self.predict_gallery_image)
+                for i in range(batch_size):
+                    self.predict_gallery_image.append(self.predict_gallery_image[0])
+                self.batch_num_in_part = self.image_num_in_part / batch_size
+                if self.image_num_in_part % batch_size != 0:
+                    print('image_num_in_part can not divide by batch_size!')
+                    print('image_num_in_part: %s, batch_size: %s' % (self.image_num_in_part, batch_size))
+                    return
+            if batch_index  % self.image_num_in_part == 0 and batch_index != 0:
+                self.file_count += 1
+                file_path = os.path.join(folder_path, file_title + '_gallery_image_%s_%s_%s.pkl' % (
+                    IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
+                with open(file_path, "rb") as f:
+                    self.predict_gallery_image = pickle.load(f)
+                print('load: %s' % file_path)
+                for i in range(batch_size):
+                    self.predict_gallery_image.append(self.predict_gallery_image[0])
+
+            batch_index = batch_index - self.file_count * self.image_num_in_part
+            images = np.array(self.predict_gallery_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            print('batch_index_in_part: %s' % batch_index)
+            images = images.astype(np.float32) / 255
+            # images: [0.0 1.0]
+            return images
+        else:
+            try:
+                self.predict_probe_image is None
+            except:
+                print(file_title + ' probe image first load')
+                self.file_count = 0
+                for root, dirs, files in os.walk(folder_path):
+                    self.file_num = sum([1 if 'predict_probe_image' in file_name else 0 for file_name in files])
+                file_path = os.path.join(folder_path, file_title + '_probe_image_%s_%s_%s.pkl' % (
+                IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
+                with open(file_path, "rb") as f:
+                    self.predict_probe_image = pickle.load(f)
+                print('load: %s' % file_path)
+                self.image_num_in_part = len(self.predict_probe_image)
+                for i in range(batch_size):
+                    self.predict_probe_image.append(self.predict_probe_image[0])
+                self.batch_num_in_part = self.image_num_in_part / batch_size
+                if self.image_num_in_part % batch_size != 0:
+                    print('image_num_in_part can not divide by batch_size!')
+                    print('image_num_in_part: %s, batch_size: %s' % (self.image_num_in_part, batch_size))
+                    return
+            if batch_index  % self.image_num_in_part == 0 and batch_index != 0:
+                self.file_count += 1
+                file_path = os.path.join(folder_path, file_title + '_probe_image_%s_%s_%s.pkl' % (
+                    IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
+                with open(file_path, "rb") as f:
+                    self.predict_probe_image = pickle.load(f)
+                print('load: %s' % file_path)
+                for i in range(batch_size):
+                    self.predict_probe_image.append(self.predict_probe_image[0])
+
+            batch_index = batch_index - self.file_count * self.image_num_in_part
+            images = np.array(self.predict_probe_image[batch_index: batch_index + batch_size], dtype=np.uint8)
+            print('batch_index_in_part: %s' % batch_index)
             images = images.astype(np.float32) / 255
             # images: [0.0 1.0]
             return images
