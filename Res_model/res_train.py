@@ -8,17 +8,15 @@ from tensorflow.contrib.framework.python.ops.variables import get_or_create_glob
 from res_trainable import ResnetReid
 from res_trainable import Train_Flags
 from res_trainable import IMAGE_HEIGHT, IMAGE_WIDTH
-slim = tf.contrib.slim
+import tensorflow.contrib.slim as slim
 from resnet_v2 import resnet_v2_50, resnet_arg_scope
-
-
 
 train_flags = Train_Flags()
 
 
-def _model_loss(vgg_class):
+def _model_loss(model):
     with tf.variable_scope(tf.get_variable_scope()):
-        vgg_class.calc_loss(vgg_class.output, train_flags.return_id_num, train_flags.image_num_every_id , train_flags.m)
+        model.calc_loss(model.output, train_flags.return_id_num, train_flags.image_num_every_id, train_flags.m)
     loss = tf.add_n(tf.get_collection('loss'))
     # loss_mean = evg_loss(loss_mean, 0.9)
     return loss
@@ -41,7 +39,10 @@ def train(retain_flag=True, start_step=0):
         input_batch = tf.placeholder(tf.float32, [None, IMAGE_HEIGHT, IMAGE_WIDTH, 3], 'input_batch')
 
         # define model
-        resnet_reid = ResnetReid()
+        resnet_reid = ResnetReid(train_flags.dropout)
+        input_batch = tf.cond(train_mode, lambda: resnet_reid.process_image(input_batch, train_flags.train_batch_size),
+                              lambda: input_batch,
+                              'process_image')
         with slim.arg_scope(resnet_arg_scope()):
             # input_batch: [batch, height, width, 3] values scaled [0.0, 1.0], dtype = tf.float32
             resnet_avg_pool, end_points = resnet_v2_50(input_batch, is_training=False, global_pool=True)
@@ -50,16 +51,15 @@ def train(retain_flag=True, start_step=0):
         resnet_reid.build(resnet_avg_pool, train_mode)
 
         # define loss
-        loss = tf.cond(train_mode, lambda: _model_loss(resnet_reid), lambda: tf.constant([0.0], dtype=tf.float32), 'chose_loss')
+        loss = tf.cond(train_mode, lambda: _model_loss(resnet_reid), lambda: tf.constant([0.0], dtype=tf.float32),
+                       'chose_loss')
 
         # Create an optimizer that performs gradient descent.
         global_step = get_or_create_global_step()
-        num_batches_per_epoch = (train_flags.num_per_epoch / train_flags.train_batch_size)
-        decay_steps = int(num_batches_per_epoch * train_flags.num_epochs_per_decay)
         lr = tf.train.exponential_decay(train_flags.initial_learning_rate,
                                         global_step,
-                                        decay_steps,
-                                        train_flags.learning_rate_decay_factor,
+                                        train_flags.decay_steps,
+                                        train_flags.decay_rate,
                                         staircase=True)
         vars_to_optimize = [v for v in tf.trainable_variables() if ('add' in v.name)]
         print '\nvariables to optimize'
@@ -99,13 +99,14 @@ def train(retain_flag=True, start_step=0):
                 change_file_flag = True
             else:
                 change_file_flag = False
-            bath = resnet_reid.get_train_image_batch(train_flags.id_image_path, train_flags.id_image_train_num,
-                                                     train_flags.return_id_num, train_flags.image_num_every_id,
-                                                     change_file=change_file_flag)
+            batch = resnet_reid.get_train_image_batch(train_flags.id_image_path, train_flags.id_image_train_num,
+                                                      train_flags.return_id_num, train_flags.image_num_every_id,
+                                                      change_file=change_file_flag)
 
             # start run
             start_time = time.time()
-            _, loss_value = sess.run([train_op, loss], feed_dict={input_batch: bath, train_mode: True})
+            _, loss_value = sess.run([train_op, loss], feed_dict={input_batch: batch, train_mode: True})
+            # print('feature abs mean: %s' % (np.mean(np.abs(f))))
             duration = time.time() - start_time
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
 
@@ -115,9 +116,10 @@ def train(retain_flag=True, start_step=0):
                 print(format_str % (datetime.now(), step, loss_value, examples_per_sec, duration))
 
             if step % 100 == 0:
-                summary_str, feature = sess.run([summary_op, resnet_reid.output],feed_dict={input_batch: bath, train_mode: True})
+                summary_str, feature = sess.run([summary_op, resnet_reid.output],
+                                                feed_dict={input_batch: batch, train_mode: True})
                 print('feature abs mean: %s' % (np.mean(np.abs(feature))))
-                summary_str = sess.run(summary_op, feed_dict={input_batch: bath, train_mode: True})
+                summary_str = sess.run(summary_op, feed_dict={input_batch: batch, train_mode: True})
                 summary_writer.add_summary(summary_str, step)
 
             if step % 5000 == 0 or (step + 1) == train_flags.max_step:
@@ -135,14 +137,16 @@ def train(retain_flag=True, start_step=0):
                     batch_name = 'valid_gallery_batch_index: ' if gallery_flag else 'valid_probe_batch_index: '
                     end_len = features_num % batch_len
                     for batch_index in range(0, features_num - end_len, batch_len):
-                        bath = resnet_reid.get_test_image_batch(batch_index, batch_len, train_flags.id_image_path, 'valid', gallery_flag)
-                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
+                        batch = resnet_reid.get_test_image_batch(batch_index, batch_len, train_flags.id_image_path,
+                                                                 'valid', gallery_flag)
+                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: batch, train_mode: False})
                         features[batch_index: batch_index + batch_len, :] = batch_feature
                         print(batch_name + str(batch_index) + '-' + str(batch_index + batch_len - 1))
                     if end_len != 0:
                         batch_index += batch_len
-                        bath = resnet_reid.get_test_image_batch(batch_index, batch_len, train_flags.id_image_path, 'valid', gallery_flag)
-                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
+                        batch = resnet_reid.get_test_image_batch(batch_index, batch_len, train_flags.id_image_path,
+                                                                 'valid', gallery_flag)
+                        batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: batch, train_mode: False})
                         features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
                         print(batch_name + str(batch_index) + '-' + str(batch_index + end_len - 1))
 
@@ -210,14 +214,14 @@ def generate_features(predict_flag, gallery_flag):
             batch_len = train_flags.test_batch_size
             end_len = features_num % batch_len
             for batch_index in range(0, features_num - end_len, batch_len):
-                bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
-                batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
+                batch = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
+                batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: batch, train_mode: False})
                 features[batch_index: batch_index + batch_len, :] = batch_feature
                 print('batch_index: ' + str(batch_index) + '-' + str(batch_index + batch_len - 1))
             if end_len != 0:
                 batch_index += batch_len
-                bath = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
-                batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: bath, train_mode: False})
+                batch = get_image_batch(batch_index, batch_len, train_flags.id_image_path, file_title, gallery_flag)
+                batch_feature = sess.run(resnet_reid.output, feed_dict={input_batch: batch, train_mode: False})
                 features[batch_index: batch_index + end_len, :] = batch_feature[:end_len]
                 print('batch_index: ' + str(batch_index) + '-' + str(batch_index + end_len - 1))
 
@@ -237,4 +241,3 @@ if __name__ == '__main__':
     # print res.get_train_image_batch(train_flags.id_image_path, train_flags.id_image_train_num, train_flags.return_id_num, train_flags.image_num_every_id)
     # print res.get_train_image_batch(train_flags.id_image_path, train_flags.id_image_train_num, train_flags.return_id_num, train_flags.image_num_every_id)
     # print res.get_valid_image_batch(0, 72, train_flags.id_image_path, gallery_flag=False)
-
