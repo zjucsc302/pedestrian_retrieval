@@ -160,6 +160,16 @@ def get_id_path_dict(file_path):
     return id_path
 
 
+def process_image(image):
+    # image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH)) * 255.0
+    # image = image.astype(np.uint8)
+
+    image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4)) * 255.0
+    image = image[:, IMAGE_WIDTH / 8:IMAGE_WIDTH / 8 + IMAGE_WIDTH, :]
+    image = image.astype(np.uint8)
+    return image
+
+
 def generate_id_image_file(id_path_dict, file_path, id_num_in_part):
     print('generate_id_image_file()')
     id_num = len([id for id in id_path_dict])
@@ -177,8 +187,7 @@ def generate_id_image_file(id_path_dict, file_path, id_num_in_part):
         images = []
         for path in id_path_dict[id]:
             image = skimage.io.imread(path)
-            image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH)) * 255.0
-            image = image.astype(np.uint8)
+            image = process_image(image)
             # print image.dtype
             # print image.shape
             # print(image)
@@ -212,8 +221,7 @@ def generate_image_file(image_path_list, file_path, image_num_in_part):
     path_count = 0
     for i, path in enumerate(image_path_list):
         image = skimage.io.imread(path)
-        image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH)) * 255.0
-        image = image.astype(np.uint8)
+        image = process_image(image)
         images.append(image)
         if (i + 1) % image_num_in_part == 0 or (i + 1) == image_num:
             pfile = file_path % (IMAGE_HEIGHT, IMAGE_WIDTH, path_count)
@@ -240,7 +248,7 @@ def generate_path_label():
     print('train id: ' + str(len(X_train)))
     print('valid id: ' + str(len(X_valid)))
     # generate train file
-    generate_id_image_file(X_train, '../data/id_image/id_image_train_%s_%s_%s.pkl', id_num_in_part=100)
+    generate_id_image_file(X_train, '../data/id_image/id_image_train_%s_%s_%s.pkl', id_num_in_part=250)
     # generate train_200 file
     probe_train, gallery_train, plabels_train, glabels_train = generate_gallery(X_train, 200)
     generate_label_file(plabels_train, './result/test_features/train_200_probe_labels.npy')
