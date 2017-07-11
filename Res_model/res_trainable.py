@@ -151,7 +151,7 @@ class ResnetReid:
 
         loss_mean = tf.reduce_mean(losses) # batch hard example
         loss_max = tf.reduce_max(losses) # batch hardest example
-        tf.add_to_collection('loss_mean', loss_mean)
+        tf.add_to_collection('loss', loss_mean)
         tf.summary.scalar('loss_mean', loss_mean)
         tf.summary.scalar('loss_max', loss_max)
 
