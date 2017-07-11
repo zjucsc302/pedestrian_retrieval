@@ -248,7 +248,10 @@ def generate_path_label():
     print('train id: ' + str(len(X_train)))
     print('valid id: ' + str(len(X_valid)))
     # generate train file
-    generate_id_image_file(X_train, '../data/id_image/id_image_train_%s_%s_%s.pkl', id_num_in_part=250)
+    # if your internal storage is more than 16g, recommend use load mode!!!
+    # generate_id_image_file(X_train, '../data/id_image/id_image_train_%s_%s_%s.pkl', id_num_in_part=3000) # load mode
+    with open('../data/id_path_train.pkl', "wb") as f:
+        pickle.dump(X_train, f)
     # generate train_200 file
     probe_train, gallery_train, plabels_train, glabels_train = generate_gallery(X_train, 200)
     generate_label_file(plabels_train, './result/test_features/train_200_probe_labels.npy')
