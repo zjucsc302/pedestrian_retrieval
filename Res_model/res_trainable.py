@@ -1,14 +1,17 @@
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 112
+
+
 import tensorflow as tf
 import numpy as np
 import os
 from tensorflow.python.platform import gfile
 import csv
-# from pedestrian_retrieval.VGG_model.vgg_preprocessing import my_preprocess_train
+from vgg_preprocessing import my_preprocess_train
 import random
 import cPickle as pickle
-
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 112
+from res_data import process_image
+import skimage.io
 
 
 class Train_Flags():
@@ -17,6 +20,7 @@ class Train_Flags():
         self.current_file_path = os.path.abspath('.')
 
         self.id_image_path = os.path.abspath('../data/id_image')
+        self.id_path_train_path = os.path.abspath('../data/id_path_train.pkl')
         self.dataset_train_csv_file_path = os.path.abspath('../data/train_triplet_pair.csv')
         self.dataset_train_200_gallery_csv_file_path = os.path.abspath('../data/train_200_gallery.csv')
         self.dataset_train_200_probe_csv_file_path = os.path.abspath('../data/train_200_probe.csv')
@@ -29,28 +33,25 @@ class Train_Flags():
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.resnet_checkpoint_file = 'resnet_v2_50.ckpt'
         self.check_path_exist()
-        self.checkpoint_name = 'resnet.ckpt'
-
+        self.checkpoint_name = 'resnet_finetuning.ckpt'
 
         self.max_step = 30001
-        self.num_per_epoch = 10000
-        self.num_epochs_per_decay = 30
-        self.test_batch_size = 40 # do not change 40!!!
-        self.change_file_step = 200
+        self.test_batch_size = 80  # do not change 80!!!
+        self.change_file_step = 400
 
-        self.output_feature_dim = 128
-        self.dropout = 0.9
         self.initial_learning_rate = 0.0001
-        self.learning_rate_decay_factor = 0.9
-        self.moving_average_decay = 0.999999
-        self.return_id_num = 18
+        self.decay_rate = 0.5
+        self.decay_steps = 10000
+
+        self.return_id_num = 20
         self.image_num_every_id = 4
         self.train_batch_size = self.return_id_num * self.image_num_every_id
+        self.output_feature_dim = 128
+        self.dropout = 0.9
         # self.tau1 = 0.6
         # self.tau2 = 0.01
         # self.beta = 0.002
         self.m = 0.4
-
 
         with open(self.dataset_train_200_gallery_csv_file_path, 'rb') as f:
             self.train_200_gallery_num = sum([1 for row in csv.reader(f)])
@@ -66,7 +67,6 @@ class Train_Flags():
             self.predict_probe_num = sum([1 for row in csv.reader(f)])
         for root, dirs, files in os.walk(self.id_image_path):
             self.id_image_train_num = sum([1 if 'id_image_train' in file_name else 0 for file_name in files])
-
 
     def check_path_exist(self):
         if not gfile.Exists(self.output_summary_path):
@@ -85,6 +85,17 @@ class ResnetReid:
     def __init__(self, dropout=0.5):
         self.dropout = dropout
 
+    def process_image(self, image_batch, image_num):
+        '''image_batch:[batch, height, width, 3], tf.float32, [0.0, 1.0]'''
+        images_process_list = []
+        images = tf.split(image_batch, image_num)
+        for image in images:
+            image = tf.reshape(image, [IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+            image = my_preprocess_train(image, IMAGE_HEIGHT, IMAGE_WIDTH)
+            image = tf.reshape(image, [1, IMAGE_HEIGHT, IMAGE_WIDTH, 3])
+            images_process_list.append(image)
+        return tf.concat(images_process_list, 0)
+
     def build(self, resnet_avg_pool, train_test_mode):
         """
         :param train_test_mode: a bool tensor, usually a placeholder: if True, dropout will be turned on
@@ -92,13 +103,13 @@ class ResnetReid:
         assert resnet_avg_pool.get_shape().as_list()[1:] == [1, 1, 2048]
         self.resnet_avg_pool_flat = tf.reshape(resnet_avg_pool, [-1, 1 * 1 * 2048])
         self.fc1_add = tf.layers.dense(inputs=self.resnet_avg_pool_flat, units=1024,
-                                       kernel_initializer=tf.truncated_normal_initializer(0.0, 0.001), use_bias=False,
+                                       kernel_initializer=tf.truncated_normal_initializer(0.0, 0.01), use_bias=False,
                                        name='fc1_add')
-        self.bn1_add = tf.layers.batch_normalization(inputs=self.fc1_add, axis=-1, name='bn1_add')
+        self.bn1_add = tf.layers.batch_normalization(inputs=self.fc1_add, training=train_test_mode, name='bn1_add')
         assert self.bn1_add.get_shape().as_list()[1:] == [1024]
         self.relu1_add = tf.nn.relu(features=self.bn1_add)
         self.fc2_add = tf.layers.dense(inputs=self.relu1_add, units=128,
-                                       kernel_initializer=tf.truncated_normal_initializer(0.0, 0.001), use_bias=False,
+                                       kernel_initializer=tf.truncated_normal_initializer(0.0, 0.1), use_bias=False,
                                        name='fc2_add')
         self.output = self.fc2_add
 
@@ -135,16 +146,24 @@ class ResnetReid:
         distmat_intra_max = tf.reduce_max(distmat_intra, axis=1, keep_dims=True)
         distmat_inter = mask_inter * distmat + mask_intra * tf.reduce_max(distmat)
         distmat_inter_min = tf.reduce_min(distmat_inter, axis=1, keep_dims=True)
-        losses = tf.maximum(m + distmat_intra_max - distmat_inter_min, 0)
-        loss = tf.reduce_mean(losses)
-        tf.add_to_collection('loss', loss)
-        tf.summary.scalar('loss', loss)
+        # losses = tf.maximum(m + distmat_intra_max - distmat_inter_min, 0) # hinge
+        losses = tf.log(1 + tf.exp(distmat_intra_max - distmat_inter_min))  # soft-margin
+
+        loss_mean = tf.reduce_mean(losses) # batch hard example
+        loss_max = tf.reduce_max(losses) # batch hardest example
+        tf.add_to_collection('loss', loss_mean)
+        tf.summary.scalar('loss_mean', loss_mean)
+        tf.summary.scalar('loss_max', loss_max)
 
         # calculate state
         distmat_intra_mean = tf.reduce_sum(distmat_intra) / tf.reduce_sum(mask_intra)
+        distmat_intra_max = tf.reduce_max(distmat_intra_max)
         distmat_inter_mean = tf.reduce_sum(mask_inter * distmat) / tf.reduce_sum(mask_inter)
+        distmat_inter_min = tf.reduce_min(distmat_inter_min)
         tf.summary.scalar('distmat_intra_mean', distmat_intra_mean)
+        tf.summary.scalar('distmat_intra_max', distmat_intra_max)
         tf.summary.scalar('distmat_inter_mean', distmat_inter_mean)
+        tf.summary.scalar('distmat_inter_min', distmat_inter_min)
         part00 = tf.slice(distmat, [0, 0], [image_num_every_id, image_num_every_id])
         part01 = tf.slice(distmat, [0, image_num_every_id], [image_num_every_id, image_num_every_id])
         part10 = tf.slice(distmat, [image_num_every_id, 0], [image_num_every_id, image_num_every_id])
@@ -152,7 +171,6 @@ class ResnetReid:
         accuracy0 = tf.reduce_mean(tf.cast(part00 < part01, dtype=tf.float32))
         accuracy1 = tf.reduce_mean(tf.cast(part11 < part10, dtype=tf.float32))
         tf.summary.scalar('accuracy', (accuracy0 + accuracy1) / 2)
-
 
     # # improved max triplet loss
     # def calc_loss(self, logits, tau1, tau2, beta):
@@ -203,8 +221,34 @@ class ResnetReid:
     #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, dtype=tf.float32))
     #     tf.summary.scalar('accuracy', accuracy)
 
+    def get_train_image_batch_direct(self, file_path, return_id_num, image_num_every_id):
+        try:
+            self.id_path is None
+        except:
+            with open(file_path, "rb") as f:
+                self.id_path = pickle.load(f)
+            self.ids = [i for i in self.id_path]
+            print('load id_path')
 
-    def get_train_image_batch(self, folder_path, file_num, return_id_num, image_num_every_id, change_file = False):
+        ids_select = random.sample(self.ids, return_id_num)
+        images = np.zeros([return_id_num * image_num_every_id, IMAGE_HEIGHT, IMAGE_WIDTH, 3], dtype=np.uint8)
+        images_input_index = 0
+        for id_select in ids_select:
+            for path_select in random.sample(self.id_path[id_select], image_num_every_id):
+                image = skimage.io.imread(path_select)
+                image = process_image(image)
+                # print image.dtype
+                # print image.shape
+                # print(image)
+                # skimage.io.imshow(image)
+                # skimage.io.show()
+                images[images_input_index:images_input_index + 1, :, :, :] = image
+                images_input_index += 1
+        images = images.astype(np.float32) / 255
+        # images: [0.0 1.0]
+        return images
+
+    def get_train_image_batch(self, folder_path, file_num, return_id_num, image_num_every_id, change_file=False):
         try:
             self.id_image_0 is None
         except:
@@ -213,9 +257,9 @@ class ResnetReid:
         if change_file:
             two_file_number = random.sample(range(file_num), 2)
             file_path_0 = os.path.join(folder_path,
-                                      'id_image_train_%s_%s_%s.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH, two_file_number[0]))
+                                       'id_image_train_%s_%s_%s.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH, two_file_number[0]))
             file_path_1 = os.path.join(folder_path,
-                                      'id_image_train_%s_%s_%s.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH, two_file_number[1]))
+                                       'id_image_train_%s_%s_%s.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH, two_file_number[1]))
             with open(file_path_0, "rb") as f:
                 self.id_image_0 = pickle.load(f)
             with open(file_path_1, "rb") as f:
@@ -247,7 +291,8 @@ class ResnetReid:
                 self.test_gallery_image is None
             except:
                 print(file_title + ' gallery image first load')
-                file_path = os.path.join(folder_path, file_title + '_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                file_path = os.path.join(folder_path,
+                                         file_title + '_gallery_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
                 with open(file_path, "rb") as f:
                     self.test_gallery_image = pickle.load(f)
                     for i in range(batch_size):
@@ -262,7 +307,8 @@ class ResnetReid:
                 self.test_probe_image is None
             except:
                 print(file_title + ' probe image first load')
-                file_path = os.path.join(folder_path, file_title + '_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
+                file_path = os.path.join(folder_path,
+                                         file_title + '_probe_image_%s_%s_0.pkl' % (IMAGE_HEIGHT, IMAGE_WIDTH))
                 with open(file_path, "rb") as f:
                     self.test_probe_image = pickle.load(f)
                     for i in range(batch_size):
@@ -283,7 +329,7 @@ class ResnetReid:
                 for root, dirs, files in os.walk(folder_path):
                     self.file_num = sum([1 if 'predict_gallery_image' in file_name else 0 for file_name in files])
                 file_path = os.path.join(folder_path, file_title + '_gallery_image_%s_%s_%s.pkl' % (
-                IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
+                    IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
                 with open(file_path, "rb") as f:
                     self.predict_gallery_image = pickle.load(f)
                 print('load: %s' % file_path)
@@ -295,7 +341,7 @@ class ResnetReid:
                     print('image_num_in_part can not divide by batch_size!')
                     print('image_num_in_part: %s, batch_size: %s' % (self.image_num_in_part, batch_size))
                     return
-            if batch_index  % self.image_num_in_part == 0 and batch_index != 0:
+            if batch_index % self.image_num_in_part == 0 and batch_index != 0:
                 self.file_count += 1
                 file_path = os.path.join(folder_path, file_title + '_gallery_image_%s_%s_%s.pkl' % (
                     IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
@@ -320,7 +366,7 @@ class ResnetReid:
                 for root, dirs, files in os.walk(folder_path):
                     self.file_num = sum([1 if 'predict_probe_image' in file_name else 0 for file_name in files])
                 file_path = os.path.join(folder_path, file_title + '_probe_image_%s_%s_%s.pkl' % (
-                IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
+                    IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
                 with open(file_path, "rb") as f:
                     self.predict_probe_image = pickle.load(f)
                 print('load: %s' % file_path)
@@ -332,7 +378,7 @@ class ResnetReid:
                     print('image_num_in_part can not divide by batch_size!')
                     print('image_num_in_part: %s, batch_size: %s' % (self.image_num_in_part, batch_size))
                     return
-            if batch_index  % self.image_num_in_part == 0 and batch_index != 0:
+            if batch_index % self.image_num_in_part == 0 and batch_index != 0:
                 self.file_count += 1
                 file_path = os.path.join(folder_path, file_title + '_probe_image_%s_%s_%s.pkl' % (
                     IMAGE_HEIGHT, IMAGE_WIDTH, self.file_count))
