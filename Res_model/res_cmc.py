@@ -444,7 +444,7 @@ def generate_first_predict_xml(normalize_flag=False, contain_top_n=None):
     np.save('../data/sort_g_names_top_n.npy', sort_g_names_top_n)
     print('start create xml')
     create_xml(p_names, sort_g_names_top_n[:, :200], '../data/predict_result.xml')
-    generate_top_predict_csv()
+    # generate_top_predict_csv()
 
 
 def generate_top_predict_csv():
