@@ -61,7 +61,8 @@ def train(retain_flag=True, start_step=0):
                                         train_flags.decay_steps,
                                         train_flags.decay_rate,
                                         staircase=True)
-        vars_to_optimize = [v for v in tf.trainable_variables() if ('add' in v.name)]
+        vars_to_optimize = [v for v in tf.trainable_variables()]
+        # vars_to_optimize = [v for v in tf.trainable_variables() if ('add' in v.name)]
         print '\nvariables to optimize'
         for v in vars_to_optimize:
             print v.name, v.get_shape().as_list()

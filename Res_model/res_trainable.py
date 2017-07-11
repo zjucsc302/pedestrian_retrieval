@@ -33,14 +33,14 @@ class Train_Flags():
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.resnet_checkpoint_file = 'resnet_v2_50.ckpt'
         self.check_path_exist()
-        self.checkpoint_name = 'resnet.ckpt'
+        self.checkpoint_name = 'resnet_finetuning.ckpt'
 
         self.max_step = 30001
         self.test_batch_size = 80  # do not change 80!!!
         self.change_file_step = 400
 
         self.initial_learning_rate = 0.0001
-        self.decay_rate = 0.1
+        self.decay_rate = 0.5
         self.decay_steps = 10000
 
         self.return_id_num = 20
@@ -105,7 +105,7 @@ class ResnetReid:
         self.fc1_add = tf.layers.dense(inputs=self.resnet_avg_pool_flat, units=1024,
                                        kernel_initializer=tf.truncated_normal_initializer(0.0, 0.01), use_bias=False,
                                        name='fc1_add')
-        self.bn1_add = tf.layers.batch_normalization(inputs=self.fc1_add, axis=-1, name='bn1_add')
+        self.bn1_add = tf.layers.batch_normalization(inputs=self.fc1_add, name='bn1_add')
         assert self.bn1_add.get_shape().as_list()[1:] == [1024]
         self.relu1_add = tf.nn.relu(features=self.bn1_add)
         self.fc2_add = tf.layers.dense(inputs=self.relu1_add, units=128,
