@@ -105,7 +105,7 @@ class ResnetReid:
         self.fc1_add = tf.layers.dense(inputs=self.resnet_avg_pool_flat, units=1024,
                                        kernel_initializer=tf.truncated_normal_initializer(0.0, 0.01), use_bias=False,
                                        name='fc1_add')
-        self.bn1_add = tf.layers.batch_normalization(inputs=self.fc1_add, name='bn1_add')
+        self.bn1_add = tf.layers.batch_normalization(inputs=self.fc1_add, training=train_test_mode, name='bn1_add')
         assert self.bn1_add.get_shape().as_list()[1:] == [1024]
         self.relu1_add = tf.nn.relu(features=self.bn1_add)
         self.fc2_add = tf.layers.dense(inputs=self.relu1_add, units=128,
@@ -149,15 +149,21 @@ class ResnetReid:
         # losses = tf.maximum(m + distmat_intra_max - distmat_inter_min, 0) # hinge
         losses = tf.log(1 + tf.exp(distmat_intra_max - distmat_inter_min))  # soft-margin
 
-        loss = tf.reduce_mean(losses)
-        tf.add_to_collection('loss', loss)
-        tf.summary.scalar('loss', loss)
+        loss_mean = tf.reduce_mean(losses) # batch hard example
+        loss_max = tf.reduce_max(losses) # batch hardest example
+        tf.add_to_collection('loss_mean', loss_mean)
+        tf.summary.scalar('loss_mean', loss_mean)
+        tf.summary.scalar('loss_max', loss_max)
 
         # calculate state
         distmat_intra_mean = tf.reduce_sum(distmat_intra) / tf.reduce_sum(mask_intra)
+        distmat_intra_max = tf.reduce_max(distmat_intra_max)
         distmat_inter_mean = tf.reduce_sum(mask_inter * distmat) / tf.reduce_sum(mask_inter)
+        distmat_inter_min = tf.reduce_min(distmat_inter_min)
         tf.summary.scalar('distmat_intra_mean', distmat_intra_mean)
+        tf.summary.scalar('distmat_intra_max', distmat_intra_max)
         tf.summary.scalar('distmat_inter_mean', distmat_inter_mean)
+        tf.summary.scalar('distmat_inter_min', distmat_inter_min)
         part00 = tf.slice(distmat, [0, 0], [image_num_every_id, image_num_every_id])
         part01 = tf.slice(distmat, [0, image_num_every_id], [image_num_every_id, image_num_every_id])
         part10 = tf.slice(distmat, [image_num_every_id, 0], [image_num_every_id, image_num_every_id])
