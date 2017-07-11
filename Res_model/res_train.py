@@ -31,7 +31,7 @@ def evg_loss(loss, decay):
 
 
 def train(retain_flag=True, start_step=0):
-    print('train(%s)' % (retain_flag))
+    print('train(retain_flag=%s, start_step=%s)' % (retain_flag, start_step))
 
     with tf.Graph().as_default():
         # define placeholder
@@ -80,7 +80,7 @@ def train(retain_flag=True, start_step=0):
         # define summary and saver
         summary_op = tf.summary.merge_all()
         summary_writer = tf.summary.FileWriter(train_flags.output_summary_path, graph=sess.graph)
-        saver = tf.train.Saver()
+        saver = tf.train.Saver(max_to_keep=6)
 
         # retrain or continue
         if retain_flag:
@@ -109,6 +109,8 @@ def train(retain_flag=True, start_step=0):
             # start run
             start_time = time.time()
             _, loss_value = sess.run([train_op, loss], feed_dict={input_batch: batch, train_mode: True})
+            # _, loss_value, f = sess.run([train_op, loss, resnet_reid.output],
+            #                             feed_dict={input_batch: batch, train_mode: True})
             # print('feature abs mean: %s' % (np.mean(np.abs(f))))
             duration = time.time() - start_time
             assert not np.isnan(loss_value), 'Model diverged with loss = NaN'
