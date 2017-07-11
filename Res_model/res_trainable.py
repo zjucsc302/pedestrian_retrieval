@@ -1,3 +1,7 @@
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 112
+
+
 import tensorflow as tf
 import numpy as np
 import os
@@ -6,9 +10,8 @@ import csv
 from vgg_preprocessing import my_preprocess_train
 import random
 import cPickle as pickle
-
-IMAGE_HEIGHT = 224
-IMAGE_WIDTH = 112
+from res_data import process_image
+import skimage.io
 
 
 class Train_Flags():
@@ -17,6 +20,7 @@ class Train_Flags():
         self.current_file_path = os.path.abspath('.')
 
         self.id_image_path = os.path.abspath('../data/id_image')
+        self.id_path_train_path = os.path.abspath('../data/id_path_train.pkl')
         self.dataset_train_csv_file_path = os.path.abspath('../data/train_triplet_pair.csv')
         self.dataset_train_200_gallery_csv_file_path = os.path.abspath('../data/train_200_gallery.csv')
         self.dataset_train_200_probe_csv_file_path = os.path.abspath('../data/train_200_probe.csv')
@@ -211,6 +215,32 @@ class ResnetReid:
     #     accuracy = tf.reduce_mean(tf.cast(dist_ref_to_pos < dist_ref_to_neg, dtype=tf.float32))
     #     tf.summary.scalar('accuracy', accuracy)
 
+    def get_train_image_batch_direct(self, file_path, return_id_num, image_num_every_id):
+        try:
+            self.id_path is None
+        except:
+            with open(file_path, "rb") as f:
+                self.id_path = pickle.load(f)
+            self.ids = [i for i in self.id_path]
+            print('load id_path')
+
+        ids_select = random.sample(self.ids, return_id_num)
+        images = np.zeros([return_id_num * image_num_every_id, IMAGE_HEIGHT, IMAGE_WIDTH, 3], dtype=np.uint8)
+        images_input_index = 0
+        for id_select in ids_select:
+            for path_select in random.sample(self.id_path[id_select], image_num_every_id):
+                image = skimage.io.imread(path_select)
+                image = process_image(image)
+                # print image.dtype
+                # print image.shape
+                # print(image)
+                # skimage.io.imshow(image)
+                # skimage.io.show()
+                images[images_input_index:images_input_index + 1, :, :, :] = image
+                images_input_index += 1
+        images = images.astype(np.float32) / 255
+        # images: [0.0 1.0]
+        return images
 
     def get_train_image_batch(self, folder_path, file_num, return_id_num, image_num_every_id, change_file=False):
         try:
