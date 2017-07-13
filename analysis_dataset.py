@@ -96,7 +96,7 @@ def xml_dict(path):
     return predict_dict
 
 
-def show_predict_result(path, top_n):
+def show_predict_prob_gallery_result(path, top_n):
     predict_dict = xml_dict(path)
     for probe, gallerys in predict_dict.iteritems():
         print('probe: % s' % probe)
@@ -111,7 +111,7 @@ def show_predict_result(path, top_n):
             skimage.io.show()
 
 
-def show_target_predict_result(path, probe_image):
+def show_target_predict_prob_gallery_result(path, probe_image):
     probe_image = str(probe_image)
     print('probe: % s' % probe_image)
     probe_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vq_path'), probe_image + '.jpg')
@@ -124,6 +124,14 @@ def show_target_predict_result(path, probe_image):
                                   gallery + '.jpg')
         skimage.io.imshow(skimage.io.imread(gallery_path))
         skimage.io.show()
+
+
+def show_target_gallery_result(gallery_image):
+    gallery_image = str(gallery_image)
+    print('gallery: % s' % gallery_image)
+    gallery_path = os.path.join(os.path.abspath('data/new_online_vali_set_UPLOAD_VERSION/vr_path'), gallery_image + '.jpg')
+    skimage.io.imshow(skimage.io.imread(gallery_path))
+    skimage.io.show()
 
 
 if __name__ == '__main__':
@@ -140,8 +148,9 @@ if __name__ == '__main__':
     # show_train_image(id_array=[1,1000,11],max_num=10)
     # show_target_train_image('137452')
 
-    # show_predict_result('data/predict_result.xml', top_n=5)
-    # show_target_predict_result('data/predict_result.xml', '323305')
+    # show_predict_prob_gallery_result('data/predict_result.xml', top_n=5)
+    # show_target_predict_prob_gallery_result('data/predict_result.xml', '313223')
+    show_target_gallery_result('037921')
 
-    show_predict_result('data/predict_result2.xml', top_n=5)
-    # show_target_predict_result('data/predict_result2.xml', '323305')
+    # show_predict_prob_gallery_result('data/predict_result2.xml', top_n=5)
+    # show_target_predict_prob_gallery_result('data/predict_result2.xml', '323305')

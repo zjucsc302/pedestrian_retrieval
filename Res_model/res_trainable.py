@@ -33,7 +33,7 @@ class Train_Flags():
         self.output_test_features_path = os.path.join(self.current_file_path, 'result', 'test_features')
         self.resnet_checkpoint_file = 'resnet_v2_50.ckpt'
         self.check_path_exist()
-        self.checkpoint_name = 'resnet_finetuning.ckpt'
+        self.checkpoint_name = 'resnet_enhance.ckpt'
 
         self.max_step = 30001
         self.test_batch_size = 80  # do not change 80!!!
@@ -91,7 +91,14 @@ class ResnetReid:
         images = tf.split(image_batch, image_num)
         for image in images:
             image = tf.reshape(image, [IMAGE_HEIGHT, IMAGE_WIDTH, 3])
-            image = my_preprocess_train(image, IMAGE_HEIGHT, IMAGE_WIDTH)
+            image = my_preprocess_train(image, IMAGE_HEIGHT, IMAGE_WIDTH,
+                                        resize_ratio=1.2,
+                                        p_crop=0.5,
+                                        p_hue=0.5,
+                                        hue_max_delta=0.1,
+                                        p_flip=0.5,
+                                        p_brightness=0.5,
+                                        brightness_max_delta=0.1)
             image = tf.reshape(image, [1, IMAGE_HEIGHT, IMAGE_WIDTH, 3])
             images_process_list.append(image)
         return tf.concat(images_process_list, 0)

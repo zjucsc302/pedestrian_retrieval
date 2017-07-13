@@ -370,10 +370,12 @@ def my_preprocess_train(image,
                         output_height,
                         output_width,
                         resize_ratio=1.2,
-                        p_crop=0.1,
-                        p_hue=0.1,
+                        p_crop=0.5,
+                        p_hue=0.5,
+                        hue_max_delta=0.1,
                         p_flip=0.5,
-                        p_brightness=0.1):
+                        p_brightness=0.5,
+                        brightness_max_delta=0.1):
     """Preprocesses the given image for training.
 
     Args:
@@ -404,13 +406,13 @@ def my_preprocess_train(image,
 
     image = tf.to_float(image)
     if p[1] < p_hue:
-        image = tf.image.random_hue(image, max_delta=0.5)
+        image = tf.image.random_hue(image, max_delta=hue_max_delta)
 
     if p[2] < p_flip:
         image = tf.image.random_flip_left_right(image)
 
     if p[3] < p_brightness:
-        image = tf.image.random_brightness(image, max_delta=0.5)
+        image = tf.image.random_brightness(image, max_delta=brightness_max_delta)
 
     image = tf.image.resize_images(image, size=(output_height, output_width))
     image.set_shape([output_height, output_width, 3])
