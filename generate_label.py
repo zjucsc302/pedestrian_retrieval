@@ -114,27 +114,6 @@ def get_pos_image(ref_image, ref_id, info_dict):
     return pos_image
 
 
-'''
-def get_animal_image():
-    pos_list = info_dict[ref_id]
-    pos_list.remove(ref_image)
-    pos_image = random.sample(pos_list,1)[0]
-    pos_list.append(ref_image)
-    return pos_image
-    
-def get_triplet_pair_test():
-    dataset_triplet_pair = []
-    for key_id, value_images_list in train_eval.iteritems():
-        #make every image in train_eval as reference image
-        for ref_image in value_images_list:
-            ref_pos_image = get_pos_image(ref_image, key_id, train_eval)
-            ref_neg_image = get_animal_image()
-            dataset_triplet_pair.append([ref_image, ref_pos_image, ref_neg_image])
-
-    return dataset_triplet_pair
-'''
-
-
 def get_triplet_pair(id_path, circle_num):
     dataset_triplet_pair = []
     for circle_number in range(circle_num):
@@ -170,6 +149,28 @@ def generate_test(gallery_probe, glabels_plabels, test_batch):
             output.write("%s,%s" % (image_path, 'Repeat for batch input'))
             output.write("\n")
             test_num = test_num + 1
+
+
+def generate_classify_csv(img_dict, num, train_path_csv, valid_path_csv):
+    with open(train_path_csv, 'w') as train_output:
+        with open(valid_path_csv, 'w') as valid_output:
+            label = 0
+            for id in img_dict.keys()[:num]:
+                imgs = img_dict[id]
+                # choice a image and put it into valid
+                img = random.choice(imgs)
+                imgs.pop(imgs.index(img))
+                valid_output.write("%s,%s" % (img, label))
+                valid_output.write("\n")
+                if len(imgs) > 3:
+                    img = random.choice(imgs)
+                    imgs.pop(imgs.index(img))
+                    valid_output.write("%s,%s" % (img, label))
+                    valid_output.write("\n")
+                for img in (imgs if len(imgs) < 41 else random.sample(imgs, 40)):
+                    train_output.write("%s,%s" % (img, label))
+                    train_output.write("\n")
+                label += 1
 
 
 def generate_path_csv(image_path_list, path_csv):
@@ -260,7 +261,7 @@ def generate_path_label():
     id_path = get_id_path_dict()
     # split train and valid date
     id_path_array = dict2array(id_path)
-    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.05, random_state=1)
+    X_train_array, X_valid_array = train_test_split(id_path_array, test_size=0.04, random_state=1)
     X_train = array2dict(X_train_array)
     X_valid = array2dict(X_valid_array)
     print('train id: ' + str(len(X_train)))
@@ -275,6 +276,8 @@ def generate_path_label():
     generate_path_label_order_csv('data/train_1000_gallery.csv', gallery_train, glabels_train)
     print('probe_train_1000: ' + str(len(probe_train)))
     print('gallery_train_1000: ' + str(len(gallery_train)))
+    # generate classify_1000 csv
+    generate_classify_csv(X_train, 1000, 'data/train_1000_classify.csv', 'data/valid_1000_classify.csv')
     # generate valid csv
     probe_valid, gallery_valid, plabels_valid, glabels_valid = generate_gallery(X_valid, len(X_valid))
     generate_path_label_order_csv('data/valid_probe.csv', probe_valid, plabels_valid)
