@@ -237,10 +237,10 @@ def generate_features(predict_flag, gallery_flag):
 
 if __name__ == '__main__':
     train(retain_flag=True, start_step=1)
-    # generate_features(predict_flag=True, gallery_flag=True)
-    # generate_features(predict_flag=True, gallery_flag=False)
-    # generate_features(predict_flag=False, gallery_flag=True)
-    # generate_features(predict_flag=False, gallery_flag=False)
+    generate_features(predict_flag=True, gallery_flag=True)
+    generate_features(predict_flag=True, gallery_flag=False)
+    generate_features(predict_flag=False, gallery_flag=True)
+    generate_features(predict_flag=False, gallery_flag=False)
 
     # res = ResnetReid()
     # print res.get_train_image_batch(train_flags.id_image_path, train_flags.id_image_train_num, train_flags.return_id_num, train_flags.image_num_every_id)
