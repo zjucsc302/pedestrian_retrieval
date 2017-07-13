@@ -157,6 +157,7 @@ def re_ranking(distmat, p_features, g_names, g_features, k1, lambda_, top_n):
     :param top_n: float
     :return: distance with re-ranking
     '''
+    print('re_ranking()')
     for i in range(p_features.shape[0]):
         dist_pg = distmat[i]
         orders = np.argsort(dist_pg)
