@@ -92,7 +92,7 @@ def mean_ap(distmat, query_ids=None, gallery_ids=None, query_cams=None, gallery_
     # Sort and find correct matches 按行获得从小到大排序的索引值
     indices = np.argsort(distmat, axis=1)
     matches = (gallery_ids[indices] == query_ids[:, np.newaxis])
-    print matches
+    print(matches)
     # Compute AP for each query
     aps = []
     for i in range(m):

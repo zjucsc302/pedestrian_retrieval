@@ -5,12 +5,15 @@ from xml.etree import ElementTree
 import os, sys
 import random
 from sklearn.model_selection import train_test_split
-import cPickle as pickle
+import pickle as pickle
 import numpy as np
 import skimage.io
 import skimage.transform
 import math
-from res_trainable import IMAGE_HEIGHT, IMAGE_WIDTH
+# from res_trainable import IMAGE_HEIGHT, IMAGE_WIDTH
+
+IMAGE_HEIGHT = 224
+IMAGE_WIDTH = 112
 
 
 def get_dict_ids_images():
@@ -72,7 +75,7 @@ def generate_gallery(img_dict, n):
     gallery = []
     plabels = []
     glabels = []
-    for id in img_dict.keys()[:n]:
+    for id in list(img_dict.keys())[:n]:
         imgs = img_dict[id]
         # choice a image and put it into probe
         img = random.choice(imgs)
@@ -90,6 +93,7 @@ def generate_gallery(img_dict, n):
             gallery.append(img)
             glabels.append(int(id))
     return probe, gallery, np.array(plabels).astype(np.int32), np.array(glabels).astype(np.int32)
+    # return probe, gallery, np.array(plabels).astype(np.int32), np.array(glabels).astype(np.int32)
 
 
 def generate_path_label_order_csv(path_csv, image_path_list, label=None):
@@ -121,7 +125,9 @@ def generate_path_label_order_repeat_probe_csv(path_csv, repeat_num, image_path_
 def generate_name_order(path_csv, image_path_list):
     with open(path_csv, 'w') as output:
         for i in range(len(image_path_list)):
-            name = image_path_list[i].split('/')[-1].split('.')[0]
+            # print(image_path_list[i])
+            name = image_path_list[i].split('\\')[-1].split('.')[0]
+            # print(name)
             output.write("%s,%s" % (name, i))
             output.write("\n")
 
@@ -165,7 +171,7 @@ def process_image(image):
     # image = image.astype(np.uint8)
 
     image = skimage.transform.resize(image, (IMAGE_HEIGHT, IMAGE_WIDTH + IMAGE_WIDTH / 4)) * 255.0
-    image = image[:, IMAGE_WIDTH / 8:IMAGE_WIDTH / 8 + IMAGE_WIDTH, :]
+    image = image[:, int(IMAGE_WIDTH / 8):int(IMAGE_WIDTH / 8) + IMAGE_WIDTH, :]
     image = image.astype(np.uint8)
     return image
 
@@ -286,4 +292,5 @@ def generate_path_label():
 
 
 if __name__ == '__main__':
+    print('start')
     generate_path_label()

@@ -4,7 +4,7 @@
 *.csv
 images.png
 images2.png
-data/
+data/*
 test2.py
 train2.py
 VGG_model/result/
@@ -12,4 +12,6 @@ VGG_model/result/
 *.ckpt
 *.meta
 *.jpg
-Res_model/result/
+Res_model/result/*
+.idea/*
+Res_model/.idea/*

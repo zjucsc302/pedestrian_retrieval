@@ -11,6 +11,7 @@ from res_trainable import IMAGE_HEIGHT, IMAGE_WIDTH
 import tensorflow.contrib.slim as slim
 from resnet_v2 import resnet_v2_50, resnet_arg_scope
 
+slim = tf.contrib.slim
 train_flags = Train_Flags()
 
 
@@ -63,9 +64,9 @@ def train(retain_flag=True, start_step=0):
                                         staircase=True)
         vars_to_optimize = [v for v in tf.trainable_variables()]
         # vars_to_optimize = [v for v in tf.trainable_variables() if ('add' in v.name)]
-        print '\nvariables to optimize'
+        print('\nvariables to optimize')
         for v in vars_to_optimize:
-            print v.name, v.get_shape().as_list()
+            print(v.name, v.get_shape().as_list())
             tf.summary.histogram(v.name, v)
         opt = tf.train.AdamOptimizer(lr)
 

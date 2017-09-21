@@ -9,9 +9,11 @@ from tensorflow.python.platform import gfile
 import csv
 from vgg_preprocessing import my_preprocess_train
 import random
-import cPickle as pickle
+# import cPickle as pickle
+import pickle
 from res_data import process_image
 import skimage.io
+# import imageio
 
 
 class Train_Flags():
@@ -53,17 +55,17 @@ class Train_Flags():
         # self.beta = 0.002
         self.m = 0.4
 
-        with open(self.dataset_train_200_gallery_csv_file_path, 'rb') as f:
+        with open(self.dataset_train_200_gallery_csv_file_path, 'r') as f:
             self.train_200_gallery_num = sum([1 for row in csv.reader(f)])
-        with open(self.dataset_train_200_probe_csv_file_path, 'rb') as f:
+        with open(self.dataset_train_200_probe_csv_file_path, 'r') as f:
             self.train_200_probe_num = sum([1 for row in csv.reader(f)])
-        with open(self.dataset_valid_gallery_csv_file_path, 'rb') as f:
+        with open(self.dataset_valid_gallery_csv_file_path, 'r') as f:
             self.valid_gallery_num = sum([1 for row in csv.reader(f)])
-        with open(self.dataset_valid_probe_csv_file_path, 'rb') as f:
+        with open(self.dataset_valid_probe_csv_file_path, 'r') as f:
             self.valid_probe_num = sum([1 for row in csv.reader(f)])
-        with open(self.dataset_predict_gallery_csv_file_path, 'rb') as f:
+        with open(self.dataset_predict_gallery_csv_file_path, 'r') as f:
             self.predict_gallery_num = sum([1 for row in csv.reader(f)])
-        with open(self.dataset_predict_probe_csv_file_path, 'rb') as f:
+        with open(self.dataset_predict_probe_csv_file_path, 'r') as f:
             self.predict_probe_num = sum([1 for row in csv.reader(f)])
         for root, dirs, files in os.walk(self.id_image_path):
             self.id_image_train_num = sum([1 if 'id_image_train' in file_name else 0 for file_name in files])
@@ -243,6 +245,7 @@ class ResnetReid:
         for id_select in ids_select:
             for path_select in random.sample(self.id_path[id_select], image_num_every_id):
                 image = skimage.io.imread(path_select)
+                # image = imageio.imread(path_select)
                 image = process_image(image)
                 # print image.dtype
                 # print image.shape
